@@ -1,7 +1,7 @@
 class_name Charts
 extends RefCounted
-## Three living charts: National Top 40 singles, the Badgerton & District
-## Local Top 20, and the National Album Top 20. Rival releases arrive every
+## Three living charts: National Top 40 singles, the Local Top 20 for
+## your home scene, and the National Album Top 20. Rival releases arrive every
 ## week, peak and fade; your releases compete against them on "power".
 
 const NAT_SIZE := 40
@@ -152,8 +152,13 @@ static func _update_player_releases(advance: bool, rep: Dictionary) -> void:
 		if sales > 0.0:
 			rel.weeks_on = int(rel.weeks_on) + 1
 			Game.earn(money)
-			Game.listeners += sales * (0.16 if album else 0.08)
-			Game.true_fans += sales * (0.005 if album else 0.002)
+			# A national hit spreads you nationwide; a local hit around your region.
+			var pub := Game.public
+			if nat > 0 and pub.stage >= 1:
+				pub.unlock(2)
+				pub.pulse(Public.SCOPE_NATIONAL, 0.004 * float(41 - nat) / 40.0)
+			pub.add_listeners(sales * (0.16 if album else 0.08), Public.SCOPE_NATIONAL if nat > 0 else Public.SCOPE_REGION)
+			pub.deepen(sales * (0.005 if album else 0.002))
 			WeekSim.line(rep, "'%s' sold %s copies (%s)." % [rel.title, U.num(sales), U.money(money)], "good")
 		# Out of the charts: show it for one more week, then retire it.
 		if rel.status == "charting" and nat == 0 and loc == 0 and Game.week > int(rel.week):

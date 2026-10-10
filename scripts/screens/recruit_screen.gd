@@ -15,10 +15,10 @@ func _ready() -> void:
 	var top := UI.hbox(16)
 	top.add_child(UI.button("BACK", "chevL", "Ghost", func(): go("practice_setup")))
 	top.add_child(UI.spacer())
-	top.add_child(preload("res://scripts/screens/manager_select.gd")._steps(2))
+	top.add_child(preload("res://scripts/screens/manager_select.gd")._steps(3))
 	v.add_child(top)
 	var hr := UI.hbox(20)
-	var hd := header("Find Your Four", "Freelancers are free. Better players cost money. Young players have the most potential to grow.", "Step 3 of 4 · Recruit")
+	var hd := header("Find Your Four", "Freelancers are free. Better players cost money. Young players have the most potential to grow.", "Step 4 of 5 · Recruit")
 	hd.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	hr.add_child(hd)
 	funds_box = UI.vbox(0)

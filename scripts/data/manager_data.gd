@@ -63,7 +63,7 @@ const LIST := [
 		"album": "Nevermind the Bills", "album_artist": "Nervana",
 		"bio": "Hasn't washed his lucky flannel shirt since 1993. Saw a seminal grunge band in a tiny club and has been chasing that feeling ever since. Smells faintly of damp.",
 		"tastes": "Loud, quiet, loud. Sincere angst. Detuned guitars.",
-		"perk": "faithful", "perk_name": "Flannel Faithful", "perk_desc": "True fans trust you: they drift away 40% more slowly.",
+		"perk": "faithful", "perk_name": "Flannel Faithful", "perk_desc": "Fans trust you: people get bored of the band 40% more slowly.",
 		"look": {"skin": 1, "hair": "long", "hair_color": "#6b4f2a", "facial": "beard", "glasses": "none", "acc": "beanie",
 			"cloth": "flannel", "cloth_color": "#8b2e2e", "expr": "flat", "age": 1, "bg": "#9aa63a"}
 	},

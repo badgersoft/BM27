@@ -7,6 +7,7 @@ const SCREENS := {
 	"settings": preload("res://scripts/screens/settings_screen.gd"),
 	"hall": preload("res://scripts/screens/hall_of_fame.gd"),
 	"managers": preload("res://scripts/screens/manager_select.gd"),
+	"city": preload("res://scripts/screens/city_select.gd"),
 	"practice_setup": preload("res://scripts/screens/practice_select.gd"),
 	"recruit": preload("res://scripts/screens/recruit_screen.gd"),
 	"naming": preload("res://scripts/screens/band_name_screen.gd"),

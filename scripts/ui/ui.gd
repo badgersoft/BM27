@@ -157,8 +157,11 @@ static func stars(rating: float, size: float = 22.0, color: Color = UITheme.GOLD
 ## Icon + caption + big value, used in stat strips.
 static func stat(icon: String, caption: String, value: String, color: Color = UITheme.TEXT, big: bool = false) -> HBoxContainer:
 	var h := hbox(10)
-	h.add_child(Icons.make(icon, 26 if big else 22, color))
+	var ic := Icons.make(icon, 26 if big else 22, color)
+	ic.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	h.add_child(ic)
 	var v := vbox(-4)
+	v.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	v.add_child(label(caption.to_upper(), "Caps"))
 	var val := label(value, "StatBig" if big else "Stat", color)
 	v.add_child(val)

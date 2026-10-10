@@ -7,7 +7,9 @@ var neglect := false
 
 
 ## Sign the best players each role's budget allows, then form the band.
-func setup_band() -> void:
+func setup_band(city: int = -1) -> void:
+	if Game.base_city < 0:
+		Game.set_base_city(city if city >= 0 else randi() % Game.public.cities.size())
 	for role in Game.ROLES:
 		var budget: float = Game.funds * 0.25
 		var best: Dictionary = {}
@@ -42,6 +44,11 @@ func bot_week() -> void:
 			var income: float = (est.x + est.y) * 0.5 * Game.gig_income_per_head(idx)
 			if Game.venue_hire(idx) <= Game.funds and (income > Game.venue_hire(idx) * 0.7 or Game.funds > Game.venue_hire(idx) * 4.0):
 				choice = idx
+		# Nobody gets famous without playing: book the cheapest slot if nothing pays.
+		if choice < 0:
+			var cheapest: int = Game.gig_offers[0]
+			if Game.funds >= Game.venue_hire(cheapest) + 30.0:
+				choice = cheapest
 		if choice >= 0:
 			Game.book_gig(choice)
 	# Focus.

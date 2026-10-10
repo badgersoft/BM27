@@ -26,7 +26,7 @@ func _ready() -> void:
 		["venue", "Biggest venue", Data.gig_venue(best_venue).name if best_venue >= 0 else "—", UITheme.TEXT],
 		["chart", "Best single", "#%d" % int(Game.stats.best_nat) if int(Game.stats.best_nat) > 0 else "—", UITheme.TEXT],
 		["disc", "Albums", str(int(Game.flags.albums)), UITheme.TEXT],
-		["heart", "True fans", U.num(Game.true_fans), UITheme.ACCENT],
+		["heart", "Fans", U.num(Game.true_fans), UITheme.ACCENT],
 		["headphones", "Listeners", U.num(Game.listeners), UITheme.INFO],
 		["mic", "Interviews", str(int(Game.stats.interviews)), UITheme.TEXT],
 	]

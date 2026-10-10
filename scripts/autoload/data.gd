@@ -42,11 +42,21 @@ func manager(id: String) -> Dictionary:
 
 
 func practice_venue(idx: int) -> Dictionary:
-	return practice[clampi(idx, 0, practice.size() - 1)]
+	var v: Dictionary = practice[clampi(idx, 0, practice.size() - 1)]
+	if str(v.name).contains("{city}"):
+		v = v.duplicate()
+		v.name = Game.cityize(v.name)
+	return v
 
 
-func gig_venue(idx: int) -> Dictionary:
-	return gigs[clampi(idx, 0, gigs.size() - 1)]
+## A gig venue. With named=true, "{city}" in the name is filled with the
+## city the venue is in this month.
+func gig_venue(idx: int, named: bool = true) -> Dictionary:
+	var v: Dictionary = gigs[clampi(idx, 0, gigs.size() - 1)]
+	if named and str(v.name).contains("{city}"):
+		v = v.duplicate()
+		v.name = str(v.name).replace("{city}", Game.city_name(Game.gig_city_of(idx)))
+	return v
 
 
 func instrument(role: String, tier: int) -> Dictionary:

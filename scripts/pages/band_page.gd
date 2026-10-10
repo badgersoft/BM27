@@ -89,7 +89,7 @@ func _member_card(role: String) -> Control:
 	acts.add_child(UI.button("TREAT", "gift", "Gold", _treat_dialog.bind(m.id)))
 	acts.add_child(UI.spacer())
 	acts.add_child(UI.button("SACK", "userX", "Ghost", func():
-		var extra := " As an original member, some true fans won't like it." if bool(m.original) else ""
+		var extra := " As an original member, some fans won't like it." if bool(m.original) else ""
 		main.confirm("Sack %s?" % m.name, "They'll leave immediately and won't come back. The rest of the band may be unsettled.%s" % extra, "SACK THEM", func(): Game.sack(role), "userX")))
 	v.add_child(acts)
 	return p
@@ -189,7 +189,7 @@ func _genre_dialog() -> void:
 	var v := UI.vbox(14)
 	v.add_child(UI.label("NEW DIRECTION?", "Caps", UITheme.ACCENT))
 	v.add_child(UI.label("Change Genre", "H2"))
-	v.add_child(UI.label("Switching sound will lose you listeners and maybe some true fans. A related genre hurts less. Members who love the new genre will be thrilled.", "BodyMuted", null, true))
+	v.add_child(UI.label("Switching sound loses the people who don't like the new genre, though loyal fans may stick around. People who love the new sound will warm to you, and so will band members who love it. Estimates below.", "BodyMuted", null, true))
 	var grid := GridContainer.new()
 	grid.columns = 2
 	grid.add_theme_constant_override("h_separation", 8)
@@ -199,11 +199,11 @@ func _genre_dialog() -> void:
 		if g.id == Game.genre:
 			continue
 		var cost := Game.genre_change_cost(g.id)
-		var fans_lost := Game.true_fans * float(cost.fans)
-		var lis_lost := Game.listeners * float(cost.listeners)
+		var fans_lost := float(cost.fans)
+		var lis_lost := float(cost.listeners)
 		var b := UI.button("%s  ·  −%s fans, −%s listeners" % [g.name, U.num(fans_lost), U.num(lis_lost)], "note", "", func():
 			main.close_modal(modal)
-			main.confirm("Go %s?" % g.name, "You'll lose about [b]%s true fans[/b] and [b]%s listeners[/b]." % [U.num(fans_lost), U.num(lis_lost)], "CHANGE GENRE", func(): Game.change_genre(g.id), "swap"))
+			main.confirm("Go %s?" % g.name, "You'll lose about [b]%s fans[/b] and [b]%s listeners[/b]." % [U.num(fans_lost), U.num(lis_lost)], "CHANGE GENRE", func(): Game.change_genre(g.id), "swap"))
 		b.add_theme_color_override("icon_normal_color", Color(g.color))
 		b.alignment = HORIZONTAL_ALIGNMENT_LEFT
 		b.size_flags_horizontal = Control.SIZE_EXPAND_FILL

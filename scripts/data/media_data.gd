@@ -7,11 +7,11 @@ extends RefCounted
 const OUTLETS := [
 	{"name": "St. Agnes School Gazette", "kind": "School newspaper", "fame": 0, "reach": 6, "fee": 0, "icon": "news"},
 	{"name": "The Parish Pump Newsletter", "kind": "Village newsletter", "fame": 0, "reach": 8, "fee": 0, "icon": "news"},
-	{"name": "BURP FM (Badgerton Uni Radio)", "kind": "Student radio", "fame": 6, "reach": 25, "fee": 0, "icon": "radio"},
+	{"name": "BURP FM ({city} Uni Radio)", "kind": "Student radio", "fame": 6, "reach": 25, "fee": 0, "icon": "radio"},
 	{"name": "Sniffin' Glue Again", "kind": "Photocopied fanzine", "fame": 8, "reach": 30, "fee": 0, "icon": "news"},
-	{"name": "The Badgerton Echo", "kind": "Local newspaper", "fame": 14, "reach": 90, "fee": 0, "icon": "news"},
-	{"name": "Radio Badgerton", "kind": "Local radio", "fame": 18, "reach": 160, "fee": 50, "icon": "radio"},
-	{"name": "Look North-ish", "kind": "Regional TV news", "fame": 28, "reach": 600, "fee": 150, "icon": "film"},
+	{"name": "The {city} Echo", "kind": "Local newspaper", "fame": 14, "reach": 90, "fee": 0, "icon": "news"},
+	{"name": "Radio {city}", "kind": "Local radio", "fame": 18, "reach": 160, "fee": 50, "icon": "radio"},
+	{"name": "{region} Tonight", "kind": "Regional TV news", "fame": 28, "reach": 600, "fee": 150, "icon": "film"},
 	{"name": "Kerplang! Magazine", "kind": "Rock magazine", "fame": 36, "reach": 1800, "fee": 300, "icon": "news"},
 	{"name": "NMEh", "kind": "Music weekly", "fame": 42, "reach": 3500, "fee": 500, "icon": "news"},
 	{"name": "Que? Magazine", "kind": "Monthly music magazine", "fame": 50, "reach": 7000, "fee": 1000, "icon": "news"},
@@ -104,7 +104,7 @@ const MEGA_SUBS := [
 ## Stories about YOUR band. {band}, {member}, {venue}, {single}.
 const YOU_GOOD := [
 	{"text": "Local critics name {band} 'ones to watch'. Everybody watches.", "listeners": 0.06, "fans": 0.0},
-	{"text": "A Radio Badgerton DJ played {band} twice in one show 'by accident'. Calls flooded in.", "listeners": 0.08, "fans": 0.0},
+	{"text": "A Radio {city} DJ played {band} twice in one show 'by accident'. Calls flooded in.", "listeners": 0.08, "fans": 0.0},
 	{"text": "{member} of {band} rescued a cat from a tree. The video has been shared everywhere.", "listeners": 0.05, "fans": 0.01},
 	{"text": "{band}'s demo spotted on a famous footballer's playlist.", "listeners": 0.10, "fans": 0.0},
 	{"text": "A busload of fans travelled 200 miles to see {band}. 'They're our band,' says Barbara, 64.", "listeners": 0.03, "fans": 0.03},
@@ -169,7 +169,7 @@ const RANDOM_EVENTS := [
 			{"label": "Pay for a repair", "cost_scale": 60, "result": "Fixed. It sounds better than ever, apparently."},
 			{"label": "Tell them to make do", "happy_member": -7, "result": "{member} is now playing through a clock radio."}]},
 	{"id": "demo", "title": "Local DJ Wants Your Demo", "icon": "radio", "min_fame": 0,
-		"text": "A late-night DJ on Radio Badgerton wants a demo for her 'Unsigned & Unhinged' slot.",
+		"text": "A late-night DJ on Radio {city} wants a demo for her 'Unsigned & Unhinged' slot.",
 		"choices": [
 			{"label": "Send the best rehearsal tape", "listeners_flat": 40, "listeners_pct": 0.05, "result": "She played it twice and called it 'raw, in a good way'."},
 			{"label": "Ignore it, you're above that", "result": "Nothing happens. Probably for the best. Probably."}]},
@@ -187,7 +187,7 @@ const RANDOM_EVENTS := [
 		"text": "A building society wants to use your latest song in a TV advert about mortgages.",
 		"choices": [
 			{"label": "Sell out (gladly)", "cash_scale": 900, "fans_pct": -0.03, "listeners_pct": 0.12, "result": "Ker-ching. Some true fans call you sell-outs, but your nan loves it."},
-			{"label": "Keep your integrity", "fans_pct": 0.02, "result": "True fans respect it. Your bank manager doesn't."}]},
+			{"label": "Keep your integrity", "fans_pct": 0.02, "result": "Real fans respect it. Your bank manager doesn't."}]},
 	{"id": "noise", "title": "Noise Complaint", "icon": "alert", "min_fame": 0,
 		"text": "The neighbours have complained about the noise. There's a strongly-worded letter, in green ink.",
 		"choices": [
@@ -211,6 +211,6 @@ const RANDOM_EVENTS := [
 ]
 
 const DOC_TITLES := ["Loud & Unwashed: The Story of {band}", "{band}: Behind The Fuzz", "Some Kind of Badger: {band}",
-	"Don't Look Back In Badgerton: {band}", "{band}: The Van Years"]
+	"Don't Look Back In {city}: {band}", "{band}: The Van Years"]
 const FILM_TITLES := ["{band}: Live At {venue}", "Stop Making Sense-ish: {band}", "{band}: Ear-Splitting Live",
 	"The Last Waltz-ish: {band}", "{band}: One Night Only"]

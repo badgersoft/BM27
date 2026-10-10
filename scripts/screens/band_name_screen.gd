@@ -18,10 +18,10 @@ func _ready() -> void:
 	var top := UI.hbox(16)
 	top.add_child(UI.button("BACK", "chevL", "Ghost", func(): go("recruit")))
 	top.add_child(UI.spacer())
-	top.add_child(preload("res://scripts/screens/manager_select.gd")._steps(3))
+	top.add_child(preload("res://scripts/screens/manager_select.gd")._steps(4))
 	v.add_child(top)
 	var hr := UI.hbox(20)
-	var hd := header("Name The Band", "Pick the sound you're chasing, then a name to go with it. Musicians who love your genre play happier.", "Step 4 of 4 · Genre & name")
+	var hd := header("Name The Band", "Pick the sound you're chasing, then a name to go with it. Musicians who love your genre play happier.", "Step 5 of 5 · Genre & name")
 	hd.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	hr.add_child(hd)
 	var form := UI.button("FORM THE BAND", "flag", "Primary", _form)

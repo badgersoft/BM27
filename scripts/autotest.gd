@@ -17,6 +17,18 @@ static func maybe_run(main: Control) -> bool:
 		if a.begins_with("--out="):
 			out_dir = a.get_slice("=", 1)
 	main_ref = main
+	# Test with default settings, without touching the player's saved ones.
+	Settings.difficulty = 1
+	Settings.ui_scale_idx = 1
+	for a in args:
+		if a.begins_with("--uiscale="):
+			Settings.ui_scale_idx = int(a.get_slice("=", 1))
+	Settings.weekly_popup = false
+	Settings.confirm_next_week = false
+	Settings.reduce_effects = true
+	Settings.autosave = true
+	Settings.apply()
+	Settings.set_meta("no_save", true)
 	DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path(out_dir))
 	# Keep Godot from importing the screenshots as project assets.
 	var gi := FileAccess.open(out_dir.path_join(".gdignore"), FileAccess.WRITE)
@@ -99,6 +111,12 @@ static func _run() -> void:
 	m.show_screen("managers")
 	await _shot("04_managers")
 	Game.choose_manager(Game.manager_choices[0])
+	m.show_screen("city")
+	await _shot("04b_city")
+	m.current.selected = 0
+	m.current._build()
+	await _shot("04c_city_selected")
+	Game.set_base_city(0)
 	m.show_screen("practice_setup")
 	await _shot("05_practice")
 	Game.practice_idx = 0
@@ -135,15 +153,26 @@ static func _run() -> void:
 		m.close_all_modals()
 	m.current.open_page("gigs")
 	await _shot("09d_gigs_early")
+	m.current.open_page("fans")
+	await _shot("09e_fans_early")
 	# Simulate a career so every page has something in it.
 	for i in 142:
 		bot.play_week()
 	m.show_screen("hq")
 	await _shot("10_hq_home")
 	var hq: Control = m.current
-	for p in ["band", "talent", "gigs", "rehearsal", "charts", "releases", "scene", "inbox"]:
+	for p in ["band", "fans", "talent", "gigs", "rehearsal", "charts", "releases", "scene", "inbox"]:
 		hq.open_page(p)
 		await _shot("11_page_" + p)
+		if "--probe" in OS.get_cmdline_user_args():
+			var lim: float = hq.page_scroll.size.x
+			for line in load("res://tests/width_probe.gd").probe(hq.page_scroll, lim):
+				print("PROBE ", p, " (avail ", int(lim), "): ", line)
+			for line in load("res://tests/width_probe.gd").probe(hq.top_bar, hq.top_bar.size.x):
+				print("PROBE topbar: ", line)
+		if p == "fans":
+			hq.page_scroll.scroll_vertical = 520
+			await _shot("11_page_fans_b")
 	hq.open_page("home")
 	# Event modals.
 	if not Game.gig_history.is_empty():

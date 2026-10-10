@@ -4,6 +4,7 @@ extends Screen
 const PAGES := {
 	"home": ["HQ", "home", preload("res://scripts/pages/home_page.gd")],
 	"band": ["BAND", "users", preload("res://scripts/pages/band_page.gd")],
+	"fans": ["FANS", "heart", preload("res://scripts/pages/fans_page.gd")],
 	"talent": ["TALENT", "search", preload("res://scripts/pages/talent_page.gd")],
 	"gigs": ["GIGS", "ticket", preload("res://scripts/pages/gigs_page.gd")],
 	"rehearsal": ["REHEARSAL", "venue", preload("res://scripts/pages/rehearsal_page.gd")],
@@ -12,7 +13,7 @@ const PAGES := {
 	"scene": ["SCENE", "flame", preload("res://scripts/pages/scene_page.gd")],
 	"inbox": ["INBOX", "mail", preload("res://scripts/pages/inbox_page.gd")],
 }
-const ORDER := ["home", "band", "talent", "gigs", "rehearsal", "charts", "releases", "scene", "inbox"]
+const ORDER := ["home", "band", "fans", "talent", "gigs", "rehearsal", "charts", "releases", "scene", "inbox"]
 
 var top_bar: PanelContainer
 var nav: VBoxContainer
@@ -108,7 +109,10 @@ func open_page(name: String) -> void:
 
 func _build_top() -> void:
 	UI.clear(top_bar)
-	var h := UI.hbox(16)
+	# Phones at big UI sizes get a compact bar: the date moves under the name.
+	var width := get_viewport_rect().size.x
+	var narrow := width < 1180
+	var h := UI.hbox(12 if narrow else 16)
 	top_bar.add_child(h)
 	var badge := PanelContainer.new()
 	badge.add_theme_stylebox_override("panel", UITheme.box(UITheme.ACCENT, 8, Color(0, 0, 0, 0), 0, 8, 0))
@@ -126,25 +130,35 @@ func _build_top() -> void:
 	idv.add_child(bn)
 	var nr := UI.hbox(8)
 	nr.add_child(UI.genre_chip(Game.genre))
-	var sub := "Managed by %s" % Game.manager().short
+	var sub := "%s · Managed by %s" % [Game.reach_label(), Game.manager().short]
+	if narrow:
+		sub = "%s · %s" % [Game.date_label(), Game.reach_label()]
 	if Game.is_final_tour():
 		sub = "FINAL TOUR · %d weeks left" % Game.final_tour_weeks_left()
-	nr.add_child(UI.label(sub, "Small", UITheme.GOLD if Game.is_final_tour() else UITheme.MUTED))
+	var sl := UI.label(sub, "Small", UITheme.GOLD if Game.is_final_tour() else UITheme.MUTED)
+	sl.clip_text = true
+	sl.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+	sl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	sl.custom_minimum_size.x = 60
+	nr.add_child(sl)
 	idv.add_child(nr)
 	idv.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	h.add_child(idv)
 	h.add_child(_stat("funds", "Funds", U.money(Game.funds), UITheme.GOLD))
-	h.add_child(_stat("heart", "True fans", U.num(Game.true_fans), UITheme.ACCENT))
+	h.add_child(_stat("heart", "Fans", U.num(Game.true_fans), UITheme.ACCENT))
 	h.add_child(_stat("headphones", "Listeners", U.num(Game.listeners), UITheme.INFO))
 	var fame := Game.fame()
 	var fv := UI.vbox(2)
-	var fs := _stat("star", "Fame · " + Game.fame_label(), str(int(fame)), UITheme.GOLD)
+	var fs := _stat("star", "Fame" if narrow else "Fame · " + Game.fame_label(), str(int(fame)), UITheme.GOLD)
+	fs.tooltip_text = Game.fame_label()
 	fv.add_child(fs)
 	fv.add_child(UI.meter(fame / 100.0, UITheme.GOLD, 4.0))
-	fv.custom_minimum_size.x = 130
+	fv.custom_minimum_size.x = 90 if narrow else 130
 	h.add_child(fv)
-	h.add_child(_stat("hourglass", "Together", U.duration(Game.band_age()), UITheme.TEXT))
-	h.add_child(_stat("calendar", "Date", Game.date_label(), UITheme.TEXT))
+	if width >= 1240:
+		h.add_child(_stat("hourglass", "Together", U.duration(Game.band_age()), UITheme.TEXT))
+	if not narrow:
+		h.add_child(_stat("calendar", "Date", Game.date_label(), UITheme.TEXT))
 	var mb := UI.button("", "menu", "Ghost", _pause_menu)
 	mb.tooltip_text = "Menu"
 	mb.custom_minimum_size = Vector2(48, 48)

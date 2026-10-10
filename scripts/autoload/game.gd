@@ -8,7 +8,7 @@ signal toast(text: String, kind: String)
 
 const SAVE_PATH := "user://bm27_save.json"
 const HOF_PATH := "user://bm27_halloffame.json"
-const SAVE_VERSION := 1
+const SAVE_VERSION := 2
 const ROLES := ["vocals", "guitar", "bass", "drums"]
 const FINAL_TOUR_MIN_WEEKS := 96
 const FINAL_TOUR_LENGTH := 24
@@ -25,14 +25,23 @@ var musicians: Dictionary = {}
 var lineup: Dictionary = {"vocals": "", "guitar": "", "bass": "", "drums": ""}
 var practice_idx := 0
 var focus := "rehearse"
-var true_fans := 4.0
-var listeners := 12.0
+var public: Public
+var base_city := -1
+## Fans (fan + super fan) and listeners (listener + regular), in real people.
+var true_fans: float:
+	get:
+		return float(public.count_at_least(Public.FAN)) * public.scale() if public else 0.0
+var listeners: float:
+	get:
+		return float(public.count(Public.LISTENER) + public.count(Public.REGULAR)) * public.scale() if public else 0.0
 var buzz := 0.0
 var peak_reach := 16.0
 var formed_week := 0
 var songcraft := 5.0
 var gig_offers: Array = []
+var gig_cities: Dictionary = {}  # str(venue idx) -> city idx for this month's offers
 var gig_booked := -1
+var gig_city := -1
 var gig_month := -1
 var gig_skipped := false
 var gig_history: Array = []
@@ -73,14 +82,17 @@ func new_game() -> void:
 	lineup = {"vocals": "", "guitar": "", "bass": "", "drums": ""}
 	practice_idx = 0
 	focus = "rehearse"
-	true_fans = 4.0
-	listeners = 12.0
+	public = Public.new()
+	public.generate(randi() % 2000000000)
+	base_city = -1
 	buzz = 0.0
 	peak_reach = 16.0
 	formed_week = 0
 	songcraft = 5.0
 	gig_offers = []
+	gig_cities = {}
 	gig_booked = -1
+	gig_city = -1
 	gig_month = -1
 	gig_skipped = false
 	gig_history = []
@@ -103,7 +115,8 @@ func new_game() -> void:
 	for r in BandData.RIVALS:
 		rivals.append({"name": r.name, "genre": r.genre, "fame": float(r.fame), "local": false})
 	for r in BandData.LOCAL:
-		rivals.append({"name": r.name, "genre": r.genre, "fame": randf_range(2.0, 28.0), "local": true})
+		rivals.append({"name": r.name, "genre": r.genre, "fame": randf_range(2.0, 28.0), "local": true,
+			"city": randi() % public.cities.size()})
 	trends = {}
 	for g in Data.genres:
 		trends[g.id] = randf_range(0.88, 1.12)
@@ -126,6 +139,57 @@ func has_perk(perk: String) -> bool:
 	return manager_id != "" and manager().perk == perk
 
 
+## Choose the home city. Bigger cities have more potential fans but
+## pricier rehearsal rooms and venues.
+func set_base_city(c: int) -> void:
+	base_city = c
+	public.set_base(c)
+	changed.emit()
+
+
+func city_name(c: int = -1) -> String:
+	if c < 0:
+		c = base_city
+	return public.city_name(c) if c >= 0 else "Badgerton"
+
+
+func city_cost(c: int = -1) -> float:
+	if c < 0:
+		c = base_city
+	return public.city_cost(c) if c >= 0 else 1.0
+
+
+## Fills {city} and {region} placeholders in names and stories.
+func cityize(s: String) -> String:
+	if not s.contains("{"):
+		return s
+	var region: String = public.regions[public.region_of(base_city)].short if base_city >= 0 else "Regional"
+	return s.replace("{city}", city_name()).replace("{region}", region)
+
+
+func reach_stage() -> int:
+	return public.stage if public else 0
+
+
+func reach_label() -> String:
+	if base_city < 0:
+		return ""
+	match public.stage:
+		0: return "Local · %s" % city_name()
+		1: return "Regional · %s" % public.regions[public.region_of(base_city)].short
+	return "National"
+
+
+## Which city a gig venue is in this month.
+func gig_city_of(idx: int) -> int:
+	var v := Data.gig_venue(idx, false)
+	if RegionData.VENUE_CITY.has(v.id):
+		return public.find_city(RegionData.VENUE_CITY[v.id])
+	if gig_booked == idx and gig_city >= 0:
+		return gig_city
+	return int(gig_cities.get(str(idx), base_city))
+
+
 func set_practice(idx: int) -> bool:
 	var v := Data.practice_venue(idx)
 	if idx > practice_idx and funds < rent_of(idx):
@@ -137,7 +201,7 @@ func set_practice(idx: int) -> bool:
 
 
 func rent_of(idx: int) -> float:
-	var r: float = Data.practice_venue(idx).rent
+	var r: float = Data.practice_venue(idx).rent * city_cost()
 	if has_perk("diy"):
 		r *= 0.7
 	return round(r)
@@ -150,6 +214,8 @@ func form_band(name: String, genre_id: String) -> void:
 		band_name = "The Unnamed"
 	genre = genre_id
 	formed_week = week
+	public._ensure_taste(genre)
+	public.seed_first_fans(4, 12)
 	for role in ROLES:
 		var m := member(role)
 		if not m.is_empty():
@@ -344,7 +410,10 @@ func gear_price(cost: float) -> float:
 
 
 func venue_hire(idx: int) -> float:
-	var c: float = Data.gig_venue(idx).hire
+	var v := Data.gig_venue(idx, false)
+	var c: float = v.hire
+	if not RegionData.VENUE_CITY.has(v.id):
+		c *= city_cost(gig_city_of(idx))
 	if has_perk("posh"):
 		c *= 0.85
 	return round(c)
@@ -463,7 +532,7 @@ func sack(role: String) -> void:
 	if m.is_empty():
 		return
 	if bool(m.original) and is_formed():
-		true_fans *= 0.97
+		public.lose(0.05, Public.FAN, 12.0)
 	for other in members():
 		if other.id != m.id and float(m.happy) > 50.0:
 			other.happy = maxf(0.0, float(other.happy) - 3.0)
@@ -528,21 +597,17 @@ func give_bonus(mid: String, amount: float, base_boost: float) -> String:
 	return "%s pocketed %s with a grin. (+%d contentment)" % [m.name, U.money(amount), int(round(boost))]
 
 
-## What switching genre would cost, as fractions lost.
+## Roughly what switching genre would cost, in real fans and listeners.
 func genre_change_cost(new_genre: String) -> Dictionary:
-	match Data.genre_distance(genre, new_genre):
-		0: return {"fans": 0.0, "listeners": 0.0}
-		1: return {"fans": 0.08, "listeners": 0.25}
-	return {"fans": 0.2, "listeners": 0.45}
+	var p := public.preview_genre_change(new_genre)
+	return {"fans": p.x * public.scale(), "listeners": p.y * public.scale()}
 
 
 func change_genre(new_genre: String) -> void:
 	if new_genre == genre:
 		return
-	var cost := genre_change_cost(new_genre)
 	var old := genre
-	true_fans *= 1.0 - float(cost.fans)
-	listeners *= 1.0 - float(cost.listeners)
+	public.genre_shock(new_genre)
 	for m in members():
 		if m.genre == new_genre:
 			m.happy = clampf(float(m.happy) + 10.0, 0.0, 100.0)
@@ -571,6 +636,7 @@ func book_gig(idx: int) -> bool:
 	if not spend(cost, "the venue hire"):
 		return false
 	gig_booked = idx
+	gig_city = gig_city_of(idx)
 	gig_skipped = false
 	add_inbox("Gig booked", "You've booked %s for the end of the month (%s)." % [Data.gig_venue(idx).name, U.money(cost)], "ticket")
 	changed.emit()
@@ -587,10 +653,16 @@ func skip_gig_month() -> void:
 ## Rough attendance estimate shown before booking: [low, high]
 func estimate_attendance(idx: int) -> Vector2i:
 	var v := Data.gig_venue(idx)
+	var c := gig_city_of(idx)
+	var crowd := public.gig_crowd(c, WeekSim.is_big(v.tier), is_final_tour(), true)
+	var people := 0.0
+	for n in crowd.counts:
+		people += float(n)
+	var expected := people * public.scale()
 	var w := WeekSim.walkin_range(v.tier)
-	var li_rate := 0.035 * (2.5 if is_final_tour() else 1.0)
-	var lo := true_fans * 0.6 * 0.85 + listeners * li_rate * 0.8 + float(v.cap) * w.x * trend()
-	var hi := true_fans * 0.6 * 1.1 + listeners * li_rate * 1.2 + float(v.cap) * w.y * trend()
+	var walk := float(v.cap) * trend() * WeekSim.city_walk_factor(c)
+	var lo := expected * 0.8 + walk * w.x
+	var hi := expected * 1.2 + walk * w.y
 	return Vector2i(int(minf(lo, v.cap)), int(minf(hi, v.cap)))
 
 
@@ -703,11 +775,12 @@ func load_hall_of_fame() -> Array:
 # ================================================================ save/load
 
 const SAVE_KEYS := ["week", "manager_id", "manager_choices", "funds", "band_name", "genre", "musicians", "lineup",
-	"practice_idx", "focus", "true_fans", "listeners", "buzz", "peak_reach", "formed_week", "songcraft",
-	"gig_offers", "gig_booked", "gig_month", "gig_skipped", "gig_history", "releases", "chart_nat", "chart_local",
+	"practice_idx", "focus", "base_city", "buzz", "peak_reach", "formed_week", "songcraft",
+	"gig_offers", "gig_cities", "gig_city", "gig_booked", "gig_month", "gig_skipped", "gig_history", "releases", "chart_nat", "chart_local",
 	"chart_album", "rivals", "trends", "inbox", "queue", "report", "stats", "flags", "last_gig_rating",
 	"last_gig_week", "used_titles", "next_uid"]
-const INT_KEYS := ["week", "practice_idx", "formed_week", "gig_booked", "gig_month", "last_gig_week", "next_uid"]
+const INT_KEYS := ["week", "practice_idx", "formed_week", "gig_booked", "gig_month", "last_gig_week", "next_uid",
+	"base_city", "gig_city"]
 
 
 func has_save() -> bool:
@@ -720,6 +793,7 @@ func save_game() -> void:
 	var d := {"version": SAVE_VERSION}
 	for k in SAVE_KEYS:
 		d[k] = get(k)
+	d["public"] = public.to_dict()
 	var f := FileAccess.open(SAVE_PATH, FileAccess.WRITE)
 	if f:
 		f.store_string(JSON.stringify(d))
@@ -732,8 +806,12 @@ func load_game() -> bool:
 	if f == null:
 		return false
 	var d = JSON.parse_string(f.get_as_text())
-	if not d is Dictionary or int(d.get("version", 0)) != SAVE_VERSION:
+	if not d is Dictionary or int(d.get("version", 0)) != SAVE_VERSION or not d.has("public"):
 		return false
+	var pub := Public.new()
+	if not pub.from_dict(d.public):
+		return false
+	public = pub
 	for k in SAVE_KEYS:
 		if not d.has(k):
 			continue
@@ -748,6 +826,11 @@ func load_game() -> bool:
 		var m: Dictionary = musicians[id]
 		for key in ["age", "tier", "ease", "inst", "joined", "cooldown", "last_complaint", "min_fame"]:
 			m[key] = int(m[key])
+	for key in gig_cities.keys():
+		gig_cities[key] = int(gig_cities[key])
+	for r in rivals:
+		if r.has("city"):
+			r.city = int(r.city)
 	for key in ["gigs", "best_nat", "best_album", "interviews", "hired", "best_venue", "total_attendance"]:
 		stats[key] = int(stats.get(key, 0))
 	for key in ["top20_since_album", "albums", "famous_weeks", "last_release_week", "last_producer_week",

@@ -9,7 +9,7 @@ func _ready() -> void:
 	top.add_child(UI.spacer())
 	top.add_child(_steps(0))
 	v.add_child(top)
-	v.add_child(header("Who's In Charge?", "Four managers are looking for a band. Each brings their own money, taste and one useful trick.", "Step 1 of 4 · Choose your manager"))
+	v.add_child(header("Who's In Charge?", "Four managers are looking for a band. Each brings their own money, taste and one useful trick.", "Step 1 of 5 · Choose your manager"))
 	var grid := GridContainer.new()
 	var w := get_viewport_rect().size.x
 	grid.columns = 4 if w >= 1200 else 2
@@ -22,7 +22,7 @@ func _ready() -> void:
 
 static func _steps(active: int) -> HBoxContainer:
 	var h := UI.hbox(6)
-	var names := ["Manager", "Rehearsal", "Recruit", "Name"]
+	var names := ["Manager", "Home", "Rehearsal", "Recruit", "Name"]
 	for i in names.size():
 		var col := UITheme.ACCENT if i == active else (UITheme.TEXT if i < active else UITheme.DIM)
 		var dot := UI.label("%d %s" % [i + 1, names[i].to_upper()], "Caps", col)
@@ -75,7 +75,7 @@ func _card(mg: Dictionary) -> PanelContainer:
 	v.add_child(fr)
 	var b := UI.button("SIGN WITH %s" % mg.short.to_upper(), "handshake", "Gold", func():
 		Game.choose_manager(mg.id)
-		go("practice_setup"))
+		go("city"))
 	v.add_child(b)
 	return p
 

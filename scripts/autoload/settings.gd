@@ -34,6 +34,10 @@ func load_settings() -> void:
 
 
 func save_settings() -> void:
+	if has_meta("no_save"):
+		apply()
+		changed.emit()
+		return
 	var cfg := ConfigFile.new()
 	cfg.set_value("game", "difficulty", difficulty)
 	cfg.set_value("display", "ui_scale_idx", ui_scale_idx)

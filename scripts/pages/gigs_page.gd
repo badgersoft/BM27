@@ -44,11 +44,14 @@ func _offer_card(idx: int, booked: bool) -> Control:
 	head.add_child(bar)
 	var hv := UI.vbox(0)
 	hv.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	hv.add_child(UI.label(v.tier.to_upper() + " VENUE", "Caps", Color(v.colour).lightened(0.2)))
+	var vc := Game.gig_city_of(idx)
+	hv.add_child(UI.label("%s VENUE · %s" % [v.tier.to_upper(), Game.city_name(vc).to_upper()], "Caps", Color(v.colour).lightened(0.2)))
 	hv.add_child(UI.label(v.name, "H3", null, true))
 	head.add_child(hv)
 	col.add_child(head)
 	col.add_child(UI.label(v.desc, "BodyMuted", null, true))
+	if vc != Game.base_city:
+		col.add_child(UI.icon_label("bus", "Away gig: fans from %s will travel if they're keen enough." % Game.city_name(), UITheme.INFO, "Small"))
 	var est := Game.estimate_attendance(idx)
 	var per := Game.gig_income_per_head(idx)
 	var hire := Game.venue_hire(idx)

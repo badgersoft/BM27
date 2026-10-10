@@ -72,7 +72,7 @@ func _gig_card() -> Control:
 		var iv := UI.vbox(2)
 		iv.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		iv.add_child(UI.label(g.name, "H3"))
-		iv.add_child(UI.label("Capacity %s · Booked · Gig night %s" % [U.num(g.cap), "at the end of this week" if weeks_left == 0 else "in %d %s" % [weeks_left + 0, U.plural(weeks_left, "week")]], "BodyMuted", null, true))
+		iv.add_child(UI.label(Game.city_name(Game.gig_city_of(Game.gig_booked)) + " · Capacity %s · Booked · Gig night %s" % [U.num(g.cap), "at the end of this week" if weeks_left == 0 else "in %d %s" % [weeks_left + 0, U.plural(weeks_left, "week")]], "BodyMuted", null, true))
 		h.add_child(iv)
 		var est := Game.estimate_attendance(Game.gig_booked)
 		h.add_child(UI.stat("users", "Expected", "%s–%s" % [U.num(est.x), U.num(est.y)]))
@@ -90,7 +90,7 @@ func _gig_card() -> Control:
 		v.add_child(h2)
 		var names := UI.hbox(8)
 		for idx in Game.gig_offers:
-			names.add_child(UI.chip(Data.gig_venue(idx).name, Color(Data.gig_venue(idx).colour)))
+			names.add_child(UI.chip("%s · %s" % [Data.gig_venue(idx).name, Game.city_name(Game.gig_city_of(idx))], Color(Data.gig_venue(idx).colour)))
 		v.add_child(names)
 	if not Game.gig_history.is_empty():
 		var last: Dictionary = Game.gig_history[0]
@@ -110,7 +110,7 @@ func _report_card() -> Control:
 		return c[0]
 	var deltas := UI.hbox(24)
 	deltas.add_child(_delta("funds", "Funds", float(r.funds1) - float(r.funds0), true))
-	deltas.add_child(_delta("heart", "True fans", float(r.fans1) - float(r.fans0)))
+	deltas.add_child(_delta("heart", "Fans", float(r.fans1) - float(r.fans0)))
 	deltas.add_child(_delta("headphones", "Listeners", float(r.listeners1) - float(r.listeners0)))
 	deltas.add_child(_delta("star", "Fame", float(r.fame1) - float(r.fame0)))
 	c[1].add_child(deltas)

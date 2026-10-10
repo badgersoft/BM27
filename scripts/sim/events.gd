@@ -195,22 +195,35 @@ static func _fill(t: String, b: String, b2: String) -> String:
 
 
 static func _you_fill(t: String, member_name: String) -> String:
-	return t.replace("{band}", Game.band_name).replace("{member}", member_name)
+	return Game.cityize(t.replace("{band}", Game.band_name).replace("{member}", member_name))
 
 
-static func _apply_news_effect(lpct: float, fpct: float) -> String:
-	var dl := Game.listeners * lpct
-	if absf(dl) < 4.0 and lpct != 0.0:
-		dl = 4.0 * signf(lpct)
-	var df := Game.true_fans * fpct
-	Game.listeners = maxf(0.0, Game.listeners + dl)
-	Game.true_fans = maxf(0.0, Game.true_fans + df)
+## Shift listeners and fans by a fraction of their current size, through
+## the public (in real people). Returns a short "+12 listeners" summary.
+static func shift_public(lpct: float, fpct: float, scope: int = Public.SCOPE_REACH) -> String:
+	var pub := Game.public
+	var l0 := Game.listeners
+	var f0 := Game.true_fans
+	if lpct > 0.0:
+		pub.add_listeners(maxf(4.0, l0 * lpct), scope)
+	elif lpct < 0.0:
+		pub.lose(-lpct * 2.0, Public.LISTENER, 10.0)
+	if fpct > 0.0:
+		pub.deepen(maxf(1.0, f0 * fpct * 3.0))
+	elif fpct < 0.0:
+		pub.lose(-fpct * 3.0, Public.FAN, 12.0)
+	var dl := Game.listeners - l0
+	var df := Game.true_fans - f0
 	var parts: Array = []
 	if absf(dl) >= 1.0:
 		parts.append("%s listeners" % U.signed_num(dl))
 	if absf(df) >= 1.0:
-		parts.append("%s true fans" % U.signed_num(df))
+		parts.append("%s fans" % U.signed_num(df))
 	return ", ".join(parts)
+
+
+static func _apply_news_effect(lpct: float, fpct: float) -> String:
+	return shift_public(lpct, fpct)
 
 
 # ============================================================== resolution
@@ -238,9 +251,12 @@ static func resolve(ev: Dictionary, choice: Variant) -> Dictionary:
 
 
 static func _resolve_interview(ev: Dictionary, tone: Variant) -> Dictionary:
-	var o: Dictionary = MediaData.OUTLETS[int(ev.outlet)]
+	var o: Dictionary = MediaData.OUTLETS[int(ev.outlet)].duplicate()
+	o.name = Game.cityize(o.name)
 	if tone == "decline":
 		return _res("Interview declined", "You let %s down gently. They'll find someone else." % o.name, "x")
+	# Local press reaches your city, regional TV your region, the rest the nation.
+	var scope := Public.SCOPE_LOCAL if int(ev.outlet) <= 5 else (Public.SCOPE_REGION if int(ev.outlet) == 6 else Public.SCOPE_REACH)
 	Game.stats.interviews = int(Game.stats.interviews) + 1
 	var base: float = float(o.reach) * randf_range(0.7, 1.3) * (0.5 + Game.band_score() / 200.0)
 	var gained := 0.0
@@ -249,7 +265,7 @@ static func _resolve_interview(ev: Dictionary, tone: Variant) -> Dictionary:
 	match tone:
 		"humble":
 			gained = base
-			Game.true_fans += base * 0.03
+			Game.public.deepen(base * 0.05)
 			Game.buzz += 1.0
 			for m in Game.members():
 				m.happy = clampf(float(m.happy) + 2.0, 0.0, 100.0)
@@ -270,12 +286,18 @@ static func _resolve_interview(ev: Dictionary, tone: Variant) -> Dictionary:
 				Game.buzz += 5.0
 				text = MediaData.TONE_RESULTS.wild_good.pick_random()
 			else:
-				gained = -Game.listeners * 0.03
-				Game.true_fans *= 0.98
+				gained = 0.0
+				Game.public.lose(0.06, Public.LISTENER, 10.0)
+				Game.public.lose(0.04, Public.FAN, 10.0)
+				Game.public.nudge(-0.4)
 				Game.buzz += 1.0
 				kind = "bad"
 				text = MediaData.TONE_RESULTS.wild_bad.pick_random()
-	Game.listeners = maxf(0.0, Game.listeners + gained)
+	var before := Game.listeners
+	if gained > 0.0:
+		Game.public.add_listeners(gained, scope)
+		Game.public.pulse(scope, 0.01 + float(o.fame) / 3000.0)
+	gained = Game.listeners - before
 	var fee := float(o.fee) * Settings.income_mult()
 	Game.earn(fee)
 	var extra := "\n\nListeners %s." % U.signed_num(gained)
@@ -404,15 +426,18 @@ static func release_now(data: Dictionary) -> Dictionary:
 	if data.kind == "album":
 		Game.flags.albums = int(Game.flags.albums) + 1
 	Charts.add_release(rel)
-	Game.listeners += 10.0 + q * 0.5
+	Game.public.add_listeners(10.0 + q * 0.5, Public.SCOPE_REACH)
+	Game.public.nudge(0.3)
 	Game.buzz += 2.0
 	Game.add_inbox("New %s: '%s'" % [data.kind, data.title], "Out now, produced by %s." % data.producer, "vinyl", "good")
 	return rel
 
 
 ## How much of a song's quality turns into national chart power at this fame.
+## Bands nobody outside their home town knows struggle to chart nationally.
 static func national_reach(f: float) -> float:
-	return 0.05 + pow(f / 100.0, 1.5) * 1.4
+	var spread: float = [0.45, 0.75, 1.0][clampi(Game.reach_stage(), 0, 2)]
+	return (0.05 + pow(f / 100.0, 1.5) * 1.4) * spread
 
 
 static func _resolve_star(ev: Dictionary, choice: Variant) -> Dictionary:
@@ -425,7 +450,7 @@ static func _resolve_star(ev: Dictionary, choice: Variant) -> Dictionary:
 		return _res("Can't afford it", "Even at mates' rates, %s costs more than you've got." % m.name, "funds", "bad")
 	Game.sign_musician(m.id, float(ev.price))
 	Game.buzz += 6.0
-	Game.listeners *= 1.08
+	shift_public(0.08, 0.0)
 	return _res("SUPERSTAR SIGNING", "%s has joined %s! The music press has gone into meltdown." % [m.name, Game.band_name], "crown", "good")
 
 
@@ -447,13 +472,11 @@ static func _resolve_random(ev: Dictionary, choice: Variant) -> Dictionary:
 	if c.has("happy_member") and not m.is_empty():
 		m.happy = clampf(float(m.happy) + float(c.happy_member), 0.0, 100.0)
 	if c.has("listeners_flat"):
-		Game.listeners += float(c.listeners_flat)
-	if c.has("listeners_pct"):
-		Game.listeners *= 1.0 + float(c.listeners_pct)
-	if c.has("fans_pct"):
-		Game.true_fans *= 1.0 + float(c.fans_pct)
+		Game.public.add_listeners(float(c.listeners_flat), Public.SCOPE_REACH)
+	if c.has("listeners_pct") or c.has("fans_pct"):
+		shift_public(float(c.get("listeners_pct", 0.0)), float(c.get("fans_pct", 0.0)))
 	if c.has("fans_flat"):
-		Game.true_fans = maxf(0.0, Game.true_fans + float(c.fans_flat))
+		Game.public.lose(0.02, Public.FAN, 8.0)
 	if c.get("skill_loss", false):
 		for mm in Game.members():
 			mm.skill = maxf(1.0, float(mm.skill) - 0.5)
@@ -474,14 +497,12 @@ static func _resolve_media_deal(ev: Dictionary, choice: Variant) -> Dictionary:
 	Game.earn(fee)
 	if ev.type == "doc":
 		Game.flags.doc_done = true
-		Game.true_fans *= 1.05
-		Game.listeners *= 1.15
+		shift_public(0.15, 0.05, Public.SCOPE_NATIONAL)
 		Game.buzz += 8.0
 		Game.add_inbox("Documentary deal", "'%s' is in production. Fee: %s." % [ev.title, U.money(fee)], "film", "good")
-		return _res(ev.title, "Cameras follow the band everywhere for months. It streams worldwide to rave reviews.\n\nFee: %s · Listeners +15%% · True fans +5%%" % U.money(fee), "film", "good")
+		return _res(ev.title, "Cameras follow the band everywhere for months. It streams worldwide to rave reviews.\n\nFee: %s · More listeners and fans nationwide" % U.money(fee), "film", "good")
 	Game.flags.film_done = true
-	Game.true_fans *= 1.06
-	Game.listeners *= 1.12
+	shift_public(0.12, 0.06, Public.SCOPE_NATIONAL)
 	Game.buzz += 8.0
 	Game.add_inbox("Concert film", "'%s' is coming to cinemas. Fee: %s." % [ev.title, U.money(fee)], "film", "good")
 	return _res(ev.title, "Thirty cameras, one legendary night at %s. It's showing in cinemas worldwide.\n\nFee: %s" % [ev.venue, U.money(fee)], "film", "good")

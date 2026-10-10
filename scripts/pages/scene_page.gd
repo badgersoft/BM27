@@ -14,7 +14,9 @@ func _rivals_card() -> Control:
 	var f := Game.fame()
 	var c: Array = UI.card("Your competition · %s" % Data.genre_name(Game.genre), "target", "Card", UITheme.GOLD)
 	c[1].add_child(UI.label("Bands in your genre at a similar level. They compete for the same crowds and can clash with your gigs.", "BodyMuted", null, true))
-	var list: Array = Game.rivals.filter(func(r): return r.genre == Game.genre and absf(float(r.fame) - f) <= 15.0)
+	var area: Array = Game.public.home_area()
+	var list: Array = Game.rivals.filter(func(r): return r.genre == Game.genre and absf(float(r.fame) - f) <= 15.0 \
+		and (not bool(r.local) or int(r.get("city", -1)) in area))
 	list.sort_custom(func(a, b): return float(a.fame) > float(b.fame))
 	var you := {"name": Game.band_name + " (you)", "fame": f, "local": f < 40.0, "you": true}
 	list.append(you)
@@ -46,7 +48,7 @@ func _band_row(r: Dictionary) -> Control:
 	if r.has("genre") and not you:
 		h.add_child(UI.genre_chip(r.genre))
 	if bool(r.get("local", false)) and not you:
-		h.add_child(UI.chip("Local", UITheme.INFO))
+		h.add_child(UI.chip(Game.city_name(int(r.get("city", Game.base_city))), UITheme.INFO))
 	var m := UI.meter(float(r.fame) / 100.0, UITheme.GOLD if you else UITheme.MUTED, 6.0)
 	m.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	h.add_child(m)

@@ -7,3 +7,4 @@ export_credentials.cfg
 *.tmp
 tests/out_*.png
 tests/shots/
+tests/shots_xl/

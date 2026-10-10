@@ -12,6 +12,8 @@ var seen_events: Dictionary = {}
 var tour_at := -1
 var neglect := false
 var bot := AutoPlayer.new()
+var cities_arg: Array = []
+var manager_arg := ""
 
 
 func _ready() -> void:
@@ -22,6 +24,11 @@ func _ready() -> void:
 			runs = int(a.get_slice("=", 1))
 		elif a.begins_with("--tour="):
 			tour_at = int(a.get_slice("=", 1))
+		elif a.begins_with("--manager="):
+			manager_arg = a.get_slice("=", 1)
+		elif a.begins_with("--city="):
+			for c in a.get_slice("=", 1).split(","):
+				cities_arg.append(int(c))
 		elif a == "--neglect":
 			neglect = true
 		elif a == "--quiet":
@@ -42,10 +49,11 @@ func _ready() -> void:
 
 func play_run(run_idx: int) -> String:
 	G.new_game()
-	G.choose_manager(G.manager_choices[run_idx % 4])
+	G.choose_manager(manager_arg if manager_arg != "" else G.manager_choices[run_idx % 4])
 	var mgr: Dictionary = G.manager()
 	print("\n### Run %d · manager %s · funds %s" % [run_idx, mgr.short, U.money(G.funds)])
-	bot.setup_band()
+	bot.setup_band(cities_arg[run_idx % cities_arg.size()] if not cities_arg.is_empty() else -1)
+	print("Home: %s (%d people, cost x%.2f)" % [G.city_name(), G.public.cities[G.base_city].count, G.city_cost()])
 	print("Band: %s · %s · score %.1f · funds %s" % [G.band_name, G.genre, G.band_score(), U.money(G.funds)])
 	var ended_at := -1
 	for i in weeks:
@@ -74,8 +82,9 @@ func play_run(run_idx: int) -> String:
 
 func print_status() -> void:
 	var offers: Array = G.gig_offers.map(func(i): return D.gig_venue(i).name.substr(0, 14))
-	var n40: float = G.chart_nat[39].power if G.chart_nat.size() >= 40 else 0.0
-	print("   nat#1 %.0f nat#20 %.0f nat#40 %.0f · fatigue %.1f" % [G.chart_nat[0].power, G.chart_nat[19].power, n40, float(G.flags.fatigue)])
+	var p: Public = G.public
+	print("   tiers L%d R%d F%d S%d · stage %s · scale %.1f · base E %.2f · top fan %.0f" % [p.count(1), p.count(2), p.count(3), p.count(4),
+		Public.STAGE_NAMES[p.stage], p.scale(), p.exposure[G.base_city], p.top_fans(1)[0].fanatic if p.real_fans() > 0 else 0.0])
 	print("%s fame %4.1f fans %7s lis %8s funds %8s score %5.1f happy %4.0f prac %d song %4.1f offers %s rel %d" % [
 		U.date_label(G.week), G.fame(), U.num(G.true_fans), U.num(G.listeners), U.money(G.funds), G.band_score(),
 		G.avg_happiness(), G.practice_idx, G.songcraft, offers, G.releases.size()])

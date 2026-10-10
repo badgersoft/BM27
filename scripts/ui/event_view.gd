@@ -86,7 +86,7 @@ static func _gig(main: Control, ev: Dictionary, done: Callable) -> void:
 	var head := UI.hbox(16)
 	var hv := UI.vbox(0)
 	hv.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	hv.add_child(UI.label(("FINAL TOUR · " if bool(g.final_tour) else "") + "GIG NIGHT · " + U.date_label(int(g.week)), "Caps", UITheme.ACCENT))
+	hv.add_child(UI.label(("FINAL TOUR · " if bool(g.final_tour) else "") + "GIG NIGHT · " + str(g.get("city", "")).to_upper() + " · " + U.date_label(int(g.week)), "Caps", UITheme.ACCENT))
 	var vn := UI.label(g.venue_name, "H1", null, true)
 	vn.add_theme_font_size_override("font_size", 52)
 	hv.add_child(vn)
@@ -126,7 +126,7 @@ static func _gig(main: Control, ev: Dictionary, done: Callable) -> void:
 	v.add_child(money[0])
 	var conv := UI.hbox(24)
 	conv.add_child(UI.stat("headphones", "New listeners", U.signed_num(float(g.new_listeners)), UITheme.INFO))
-	conv.add_child(UI.stat("heart", "True fans", U.signed_num(float(g.new_fans)), UITheme.ACCENT))
+	conv.add_child(UI.stat("heart", "New fans", U.signed_num(float(g.new_fans)), UITheme.ACCENT))
 	conv.add_child(UI.spacer())
 	var m: Control
 	var b := UI.button("CONTINUE", "chevR", "Primary", func():
@@ -143,7 +143,7 @@ static func _crowd_bar(g: Dictionary) -> Control:
 	var bar := HBoxContainer.new()
 	bar.add_theme_constant_override("separation", 2)
 	bar.custom_minimum_size.y = 18
-	var parts := [[g.true_fans, UITheme.ACCENT], [g.listeners, UITheme.INFO], [g.walkins, UITheme.GOLD], [float(g.cap) - float(g.attendance), Color(1, 1, 1, 0.08)]]
+	var parts := [[g.fans, UITheme.ACCENT], [g.listeners, UITheme.INFO], [g.walkins, UITheme.GOLD], [float(g.cap) - float(g.attendance), Color(1, 1, 1, 0.08)]]
 	for p in parts:
 		if float(p[0]) <= 0.0:
 			continue
@@ -154,9 +154,13 @@ static func _crowd_bar(g: Dictionary) -> Control:
 		bar.add_child(r)
 	v.add_child(bar)
 	var legend := UI.hbox(22)
-	legend.add_child(_legend(UITheme.ACCENT, "True fans", int(g.true_fans)))
+	legend.add_child(_legend(UITheme.ACCENT, "Fans", int(g.fans)))
 	legend.add_child(_legend(UITheme.INFO, "Listeners", int(g.listeners)))
 	legend.add_child(_legend(UITheme.GOLD, "Walk-ins", int(g.walkins)))
+	if int(g.get("travelled", 0)) > 0:
+		legend.add_child(UI.icon_label("bus", "%s travelled from other cities" % U.num(int(g.travelled)), UITheme.MUTED, "Small", 14))
+	if int(g.get("super_fans", 0)) > 0:
+		legend.add_child(UI.icon_label("crown", "%s super fans" % U.num(int(g.super_fans)), UITheme.GOLD, "Small", 14))
 	v.add_child(legend)
 	return v
 
@@ -266,7 +270,8 @@ static func _report(main: Control, done: Callable) -> void:
 # ------------------------------------------------------------- interview
 
 static func _interview(main: Control, ev: Dictionary, done: Callable) -> void:
-	var o: Dictionary = MediaData.OUTLETS[int(ev.outlet)]
+	var o: Dictionary = MediaData.OUTLETS[int(ev.outlet)].duplicate()
+	o.name = Game.cityize(o.name)
 	var v := _frame("Interview request · " + o.kind, o.name, o.icon, UITheme.INFO)
 	var fee_txt := " They'll pay an appearance fee of %s." % U.money(float(o.fee) * Settings.income_mult()) if float(o.fee) > 0 else ""
 	v.add_child(UI.label("%s want a chat with %s.%s How do you play it?" % [o.name, Game.band_name, fee_txt], "Body", null, true))
@@ -484,12 +489,12 @@ static func _random(main: Control, ev: Dictionary, done: Callable) -> void:
 	if not mem.is_empty():
 		var h := UI.hbox(14)
 		h.add_child(Portrait.make(mem.look, 64))
-		var t := UI.label(e.text.replace("{member}", mname).replace("{rival}", ev.get("rival", "")), "Body", null, true)
+		var t := UI.label(Game.cityize(e.text.replace("{member}", mname).replace("{rival}", ev.get("rival", ""))), "Body", null, true)
 		t.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		h.add_child(t)
 		v.add_child(h)
 	else:
-		v.add_child(UI.label(e.text.replace("{member}", mname).replace("{rival}", ev.get("rival", "")), "Body", null, true))
+		v.add_child(UI.label(Game.cityize(e.text.replace("{member}", mname).replace("{rival}", ev.get("rival", ""))), "Body", null, true))
 	var m: Control
 	for i in e.choices.size():
 		var c: Dictionary = e.choices[i]

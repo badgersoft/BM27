@@ -55,7 +55,7 @@ The game autosaves every week and when a phone sends the app to the background.
 | Weekly updates | HQ *Weekly Update* card (optional pop-up in Settings) |
 | Interviews scaling from the school paper to global TV | `MediaData.OUTLETS`, with a choice of tone: Humble / Cocky / Mysterious / Controversial |
 | Rehearsing, potential caps, rare breakthroughs | `WeekSim._train` |
-| Funds, True Fans, Listeners, Genre, Fame, Lifespan (per member, ★ for originals) | HQ top bar and Band page |
+| Funds, Fans, Listeners, Genre, Fame, Lifespan (per member, ★ for originals) | HQ top bar, Fans page and Band page |
 | Monthly gig: book 1 of 2–3 offers, or skip (costs fans); sometimes no venue will have you | Gigs page, `WeekSim.generate_gig_offers` |
 | Gig-night splash: crowd breakdown, crowd and critic ratings, conversions | `EventView._gig` + `StageArt` (generated stage scene; crowd density matches attendance) |
 | Signing at or below asking price depending on contentment | Negotiation dialog (`MusicianView.open_offer`) |
@@ -68,6 +68,47 @@ The game autosaves every week and when a phone sends the app to the background.
 | Fans collapsing → members leave (with 2–3 replacements offered) or the band splits (game over) | `WeekSim._check_endings`, `Events.queue_member_left` |
 | Final Tour (6 months, bigger crowds and merch) → retirement | Home page once eligible (2 years together, fame 35+) |
 | Name the band: 4 genre-appropriate suggestions or your own | `scripts/screens/band_name_screen.gd`, `NameData` |
+
+### The public base
+
+The audience is **~29,000 named people** across 9 regions, simulated individually
+(`scripts/sim/public.gd`, data in `scripts/data/region_data.gd`).
+
+| Region | Cities (people) |
+|---|---|
+| Northwest England | Manchester (~1,400), Liverpool (~1,400), Preston (~1,000) |
+| Northeast England | Newcastle (~1,200), Sunderland, Middlesbrough |
+| Midlands | Birmingham (~1,400), Nottingham, Leicester |
+| Southeast England | Brighton, Southampton, Portsmouth |
+| Southwest England | Bristol, Plymouth, Bournemouth |
+| Wales | Cardiff (~1,200), Swansea, Newport |
+| Ireland | Dublin (~1,200), Belfast, Cork |
+| Scotland | Glasgow (~1,200), Edinburgh, Aberdeen |
+| London | City of London (3,000) |
+
+Each person has a first name, gender, age, favourite and second-favourite genre,
+gig likelihood, **variance** (appetite for new music; younger people run higher),
+**loyalty** (how much bad stuff they'll put up with; older people run higher) and a
+**fanatic** score (0–100) for your band. Each city has its own scene flavour
+(Birmingham loves metal, Manchester Britpop, Bristol EDM…).
+
+- **Fan ladder:** Not a fan → Listener → Regular listener → Fan → Super fan (needs
+  six months as a fan). Real fans track how many months they've been a fan.
+- **Home city:** chosen at setup. Bigger cities have more potential fans but
+  rehearsal rent and ordinary venues cost more (×1.0 to ×1.83).
+- **Spreading:** Local → Regional (25 real fans at home) → National (a regional
+  following, or a national chart hit). Gig offers start coming from other cities.
+- **Gigs:** every fan and listener decides whether to come, based on tier, gig
+  likelihood and distance (super fans travel; listeners rarely do). The crowd's
+  verdict changes how each attendee feels; good walk-ins become listeners.
+- **Fans page:** the ladder, your reach, a **Top Fans** table (name, how long
+  they've been a fan, home city) once you have more than 25 real fans, fan
+  demographics, and a city-by-city breakdown.
+- **Scale:** while you're local, every person is one real person. As you spread,
+  each person comes to stand for more real people (up to ~60×), so 29,000 people
+  can still fill Wombley. The Fans page shows the current figure.
+- **Saving:** traits are regenerated from a seed; only feelings are saved
+  (compressed), adding ~10–50 KB.
 
 ### Extras I added
 
@@ -122,6 +163,11 @@ godot --headless --path . res://tests/sim_test.tscn -- --weeks=400 --runs=4
 
 # Screenshot tour of every screen and modal (needs a display, or xvfb-run)
 godot --path . -- --autotest --out=res://tests/shots
+#   --uiscale=3    test the XL interface size (narrow phone layouts)
+#   --monkey --steps=3000   press random buttons to smoke-test every UI callback
+
+# Public base performance and save size
+godot --headless --path . res://tests/perf_check.tscn
 ```
 
 ## Credits
