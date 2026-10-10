@@ -30,10 +30,10 @@ var base_city := -1
 ## Fans (fan + super fan) and listeners (listener + regular), in real people.
 var true_fans: float:
 	get:
-		return float(public.count_at_least(Public.FAN)) * public.scale() if public else 0.0
+		return public.real_at_least(Public.FAN) if public else 0.0
 var listeners: float:
 	get:
-		return float(public.count(Public.LISTENER) + public.count(Public.REGULAR)) * public.scale() if public else 0.0
+		return public.real_at_least(Public.LISTENER) - public.real_at_least(Public.FAN) if public else 0.0
 var buzz := 0.0
 var peak_reach := 16.0
 var formed_week := 0
@@ -271,8 +271,9 @@ func reach() -> float:
 	return true_fans + listeners
 
 
+## Fame is mostly about real fans; casual listeners count for much less.
 func fame_base() -> float:
-	var x := true_fans * 4.0 + listeners
+	var x := true_fans * 20.0 + listeners * 0.5
 	return clampf((log(1.0 + x) / log(10.0) - 1.5) / 6.0 * 100.0, 0.0, 100.0)
 
 
@@ -292,10 +293,14 @@ func fame_label(f: float = -1.0) -> String:
 	return "Global Icons"
 
 
-## Expected crowd from fans and listeners alone (venues use this to decide
-## whether to book you).
-func draw() -> float:
-	return true_fans * 0.6 + listeners * 0.035
+## Expected crowd from fans and listeners alone for a venue in a city (real
+## people). Venues use this to decide whether to book you.
+func expected_crowd(idx: int, city: int = -1) -> float:
+	var v := Data.gig_venue(idx, false)
+	if city < 0:
+		city = gig_city_of(idx)
+	var crowd := public.gig_crowd(city, WeekSim.travel_factor(v.tier), is_final_tour(), true)
+	return public.real_of(crowd.counts).total
 
 
 func trend(g: String = "") -> float:
@@ -600,7 +605,9 @@ func give_bonus(mid: String, amount: float, base_boost: float) -> String:
 ## Roughly what switching genre would cost, in real fans and listeners.
 func genre_change_cost(new_genre: String) -> Dictionary:
 	var p := public.preview_genre_change(new_genre)
-	return {"fans": p.x * public.scale(), "listeners": p.y * public.scale()}
+	var fw := true_fans / maxf(1.0, public.count_at_least(Public.FAN))
+	var lw := listeners / maxf(1.0, public.count(Public.LISTENER) + public.count(Public.REGULAR))
+	return {"fans": p.x * fw, "listeners": p.y * lw}
 
 
 func change_genre(new_genre: String) -> void:
@@ -654,11 +661,8 @@ func skip_gig_month() -> void:
 func estimate_attendance(idx: int) -> Vector2i:
 	var v := Data.gig_venue(idx)
 	var c := gig_city_of(idx)
-	var crowd := public.gig_crowd(c, WeekSim.is_big(v.tier), is_final_tour(), true)
-	var people := 0.0
-	for n in crowd.counts:
-		people += float(n)
-	var expected := people * public.scale()
+	var crowd := public.gig_crowd(c, WeekSim.travel_factor(v.tier), is_final_tour(), true)
+	var expected: float = public.real_of(crowd.counts).total
 	var w := WeekSim.walkin_range(v.tier)
 	var walk := float(v.cap) * trend() * WeekSim.city_walk_factor(c)
 	var lo := expected * 0.8 + walk * w.x

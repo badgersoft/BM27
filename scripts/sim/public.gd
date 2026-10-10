@@ -437,36 +437,74 @@ func real_fans() -> int:
 	return count_at_least(FAN)
 
 
-# ================================================================ scaling
+# ======================================================== representation
 
-## Early on, every person is one real person. As the band spreads, each
-## person in the simulation comes to stand for a larger slice of the public,
-## so 29,000 people can still fill Wombley Stadium.
-func scale() -> float:
-	if base_city < 0:
-		return 1.0
-	var area := home_area()
-	var reg := 0.0
-	var n := 0
-	if stage >= 1:
-		for c in area:
-			if c != base_city:
-				reg += exposure[c]
-				n += 1
-		reg = reg / maxf(1.0, n)
-	var nat := 0.0
-	if stage >= 2:
-		var pop := 0.0
-		for c in cities.size():
-			if not c in area:
-				nat += exposure[c] * float(cities[c].count)
-				pop += float(cities[c].count)
-		nat = nat / maxf(1.0, pop)
-	return 1.0 + 4.0 * reg + 60.0 * pow(nat, 1.2)
+## The UK music public in real people. The simulated people are a sample.
+const TOTAL_REAL := 10000000
+
+## How many real people each simulated person stands for, by how many people
+## are in a group: [group size up to, each extra person counts as]. Only the
+## people inside a band get its weight (like tax bands), so totals never jump.
+const BANDS := [[100, 1.0], [500, 2.0], [1500, 5.0], [3000, 15.0], [6000, 40.0], [12000, 100.0], [1000000000, 300.0]]
 
 
-func _people_from_real(real: float) -> int:
-	var p := real / scale()
+## Real people represented by a group of n simulated people.
+static func represent(n: float) -> float:
+	var total := 0.0
+	var prev := 0.0
+	for b in BANDS:
+		var top := float(b[0])
+		if n <= top:
+			return total + (n - prev) * float(b[1])
+		total += (top - prev) * float(b[1])
+		prev = top
+	return total
+
+
+## What the next person added to a group of n would count as.
+static func marginal(n: float) -> float:
+	for b in BANDS:
+		if n < float(b[0]):
+			return float(b[1])
+	return float(BANDS[BANDS.size() - 1][1])
+
+
+## Real people at or above a tier. The curve is applied from the top down
+## ("super fans", "fans and up", "regulars and up"...), so promoting someone
+## from fan to super fan can never make your fan total drop.
+func real_at_least(t: int) -> float:
+	if t <= NOT_FAN:
+		return float(TOTAL_REAL)
+	return represent(count_at_least(t))
+
+
+## Real people in exactly this tier. "Not a fan" is everyone else.
+func real_tier(t: int) -> float:
+	if t == NOT_FAN:
+		return maxf(0.0, TOTAL_REAL - real_at_least(LISTENER))
+	if t == SUPER:
+		return real_at_least(SUPER)
+	return real_at_least(t) - real_at_least(t + 1)
+
+
+## Average real people per simulated person in a tier.
+func tier_weight(t: int) -> float:
+	var c := count(t)
+	if c <= 0:
+		return marginal(count_at_least(t))
+	return real_tier(t) / float(c)
+
+
+## Real people for a set of simulated people by tier (e.g. a gig crowd).
+func real_of(counts: Array) -> Dictionary:
+	var fans := float(counts[FAN]) * tier_weight(FAN) + float(counts[SUPER]) * tier_weight(SUPER)
+	var lis := float(counts[LISTENER]) * tier_weight(LISTENER) + float(counts[REGULAR]) * tier_weight(REGULAR)
+	return {"fans": fans, "listeners": lis, "super": float(counts[SUPER]) * tier_weight(SUPER), "total": fans + lis}
+
+
+## Simulated people needed to make `real` new people at a tier.
+func _people_from_real(real: float, at_tier: int = LISTENER) -> int:
+	var p := real / marginal(count_at_least(at_tier))
 	var n := int(floor(p))
 	if randf() < p - n:
 		n += 1
@@ -556,7 +594,7 @@ func _check_stage() -> Array:
 	var msgs: Array = []
 	var base_ct: Array = city_tier[base_city]
 	var base_fans: int = base_ct[FAN] + base_ct[SUPER]
-	if stage == 0 and (base_fans >= 25 or float(base_fans + base_ct[REGULAR]) / float(cities[base_city].count) >= 0.06):
+	if stage == 0 and (base_fans >= 25 or (base_fans + base_ct[REGULAR] * 0.5) / float(cities[base_city].count) >= 0.08):
 		unlock(1)
 		msgs.append("Word is spreading beyond %s: people across %s are starting to hear about you." % [city_name(base_city), region_name(region_of(base_city))])
 	elif stage == 1:
@@ -614,7 +652,7 @@ func _pick_city(cs: Array) -> int:
 ## Win over `real` new listeners (in real people). Returns people affected.
 func add_listeners(real: float, scope: int = SCOPE_REACH) -> int:
 	if real < 0.0:
-		lose(minf(1.0, -real / maxf(1.0, count_at_least(LISTENER) * scale())), LISTENER, 10.0)
+		lose(minf(1.0, -real / maxf(1.0, real_at_least(LISTENER))), LISTENER, 10.0)
 		return 0
 	_ensure_taste(_taste_genre if _taste_genre != "" else genre_ids[0])
 	var n := mini(_people_from_real(real), 3000)
@@ -640,7 +678,7 @@ func deepen(real: float) -> void:
 	_ensure()
 	if engaged.is_empty():
 		return
-	var n := mini(_people_from_real(real), engaged.size())
+	var n := mini(_people_from_real(real, FAN), engaged.size())
 	for k in n:
 		var i: int = engaged[randi() % engaged.size()]
 		fanatic[i] = minf(100.0, fanatic[i] + randf_range(6.0, 14.0) * (0.4 + taste(i)))
@@ -706,9 +744,11 @@ func preview_genre_change(new_genre: String) -> Vector2:
 
 # ================================================================== gigs
 
-## Who turns up to a gig in city `venue_city`. With expected=true returns
-## expected counts instead of rolling dice. Counts are in people.
-func gig_crowd(venue_city: int, big: bool, tour: bool, expected: bool = false) -> Dictionary:
+## Who turns up to a gig in city `venue_city`. travel: how much further
+## people will go for this size of show (1 = a pub gig, 3 = a stadium).
+## With expected=true returns expected counts instead of rolling dice.
+## Counts are in simulated people (see real_of()).
+func gig_crowd(venue_city: int, travel: float, tour: bool, expected: bool = false) -> Dictionary:
 	_ensure()
 	var area := home_area(venue_city)
 	var counts := [0.0, 0.0, 0.0, 0.0, 0.0]
@@ -722,8 +762,7 @@ func gig_crowd(venue_city: int, big: bool, tour: bool, expected: bool = false) -
 		var pc := int(city[i])
 		if pc != venue_city:
 			var d: float = TRAVEL_REGION[t] if pc in area else TRAVEL_FAR[t]
-			if big:
-				d = minf(1.0, d * 1.8)
+			d = minf(1.0, d * travel)
 			p *= d
 		p = minf(0.98, p * (0.4 + gig[i] * 0.009))
 		if expected:

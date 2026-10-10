@@ -83,8 +83,11 @@ func play_run(run_idx: int) -> String:
 func print_status() -> void:
 	var offers: Array = G.gig_offers.map(func(i): return D.gig_venue(i).name.substr(0, 14))
 	var p: Public = G.public
-	print("   tiers L%d R%d F%d S%d · stage %s · scale %.1f · base E %.2f · top fan %.0f" % [p.count(1), p.count(2), p.count(3), p.count(4),
-		Public.STAGE_NAMES[p.stage], p.scale(), p.exposure[G.base_city], p.top_fans(1)[0].fanatic if p.real_fans() > 0 else 0.0])
+	print("   tiers L%d R%d F%d S%d · stage %s · fan weight %.1f · base E %.2f · top fan %.0f" % [p.count(1), p.count(2), p.count(3), p.count(4),
+		Public.STAGE_NAMES[p.stage], p.tier_weight(3), p.exposure[G.base_city], p.top_fans(1)[0].fanatic if p.real_fans() > 0 else 0.0])
+	if not G.gig_history.is_empty():
+		var lg: Dictionary = G.gig_history[0]
+		print("   last gig: %s %s/%s (%d%%) crowd %.1f" % [lg.venue_name, U.num(lg.attendance), U.num(lg.cap), int(float(lg.fill) * 100), float(lg.crowd)])
 	print("%s fame %4.1f fans %7s lis %8s funds %8s score %5.1f happy %4.0f prac %d song %4.1f offers %s rel %d" % [
 		U.date_label(G.week), G.fame(), U.num(G.true_fans), U.num(G.listeners), U.money(G.funds), G.band_score(),
 		G.avg_happiness(), G.practice_idx, G.songcraft, offers, G.releases.size()])

@@ -9,22 +9,20 @@ const TOP_FAN_MIN := 25
 
 func build() -> void:
 	var pub: Public = Game.public
-	var s := pub.scale()
-	var sub := "%s people make up the UK music public." % U.num(pub.size())
-	if s > 1.05:
-		sub += " Your music has spread, so each person now stands for about %s real people." % ("%.1f" % s if s < 10.0 else str(int(round(s))))
+	var sub := "%s people stand for the UK's %s music lovers. Your first 99 in any group are real individuals; bigger groups count each person as more." % [U.num(pub.size()), U.num(Public.TOTAL_REAL)]
 	title("Your Public", sub, "heart")
-	add_child(_ladder(pub, s))
+	add_child(_ladder(pub))
 	add_child(_journey(pub))
 	var cols := columns(1.25)
 	cols[0].add_child(_top_fans(pub))
 	cols[0].add_child(_demographics(pub))
 	cols[1].add_child(_cities(pub))
+	cols[1].add_child(_counting())
 
 
 # ------------------------------------------------------------- fan ladder
 
-func _ladder(pub: Public, s: float) -> Control:
+func _ladder(pub: Public) -> Control:
 	var grid := GridContainer.new()
 	grid.columns = 5 if get_viewport().get_visible_rect().size.x >= 1360 else 3
 	grid.add_theme_constant_override("h_separation", 12)
@@ -40,9 +38,9 @@ func _ladder(pub: Public, s: float) -> Control:
 		h.add_child(UI.label(Public.TIER_NAMES[t].to_upper(), "Caps", col))
 		v.add_child(h)
 		var n := pub.count(t)
-		v.add_child(UI.label(U.num(n), "StatBig", UITheme.TEXT if t > 0 else UITheme.MUTED))
-		if t > 0 and s > 1.05:
-			v.add_child(UI.label("≈ %s real people" % U.num(n * s), "Small", col))
+		var real := pub.real_tier(t)
+		v.add_child(UI.label(U.num(real), "StatBig", UITheme.TEXT if t > 0 else UITheme.MUTED))
+		v.add_child(UI.label("%s %s in the game" % [U.num(n), U.plural(n, "person", "people")], "Small", col))
 		var d := UI.label(Public.TIER_DESC[t], "Small", UITheme.MUTED, true)
 		d.add_theme_font_size_override("font_size", 14)
 		v.add_child(d)
@@ -133,6 +131,25 @@ static func _months(m: int) -> String:
 	var y := m / 12
 	var r := m % 12
 	return "%dy %dm" % [y, r] if r > 0 else "%d %s" % [y, U.plural(y, "year")]
+
+
+# ------------------------------------------------------- how we count
+
+func _counting() -> Control:
+	var c: Array = UI.card("How we count", "info", "CardFlat", UITheme.MUTED)
+	c[1].add_child(UI.label("Each person in the game stands for more real people as a group grows. Only the people inside each band get its weight, so numbers never jump.", "Small", UITheme.MUTED, true))
+	var grid := GridContainer.new()
+	grid.columns = 2
+	grid.add_theme_constant_override("h_separation", 24)
+	var prev := 0
+	for b in Public.BANDS:
+		var top := int(b[0])
+		var label := "%s+" % U.num(prev + 1) if top >= 1000000 else "%s – %s" % [U.num(prev + 1), U.num(top)]
+		grid.add_child(UI.label(label + " people", "Small", UITheme.TEXT))
+		grid.add_child(UI.label("× %d each" % int(b[1]), "Strong", UITheme.GOLD))
+		prev = top
+	c[1].add_child(grid)
+	return c[0]
 
 
 # ---------------------------------------------------------- demographics

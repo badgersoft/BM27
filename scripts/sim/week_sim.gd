@@ -102,7 +102,9 @@ static func _apply_focus(rep: Dictionary) -> void:
 			var fame := Game.fame()
 			var newl := randf_range(3.0, 10.0) * hustle + Game.reach() * 0.002 * (1.0 + fame / 30.0)
 			Game.earn(cash)
-			newl = Game.public.add_listeners(newl, Public.SCOPE_LOCAL) * Game.public.scale()
+			var l0 := Game.listeners
+			Game.public.add_listeners(newl, Public.SCOPE_LOCAL)
+			newl = maxf(0.0, Game.listeners - l0)
 			Game.public.pulse(Public.SCOPE_LOCAL, 0.01)
 			if fame > 50.0:
 				line(rep, "A surprise busk caused a minor riot on the high street! %s in the hat, +%s listeners." % [U.money(cash), U.num(newl)], "good")
@@ -117,7 +119,9 @@ static func _apply_focus(rep: Dictionary) -> void:
 			Game.funds -= cost
 			Game.stats.spent = float(Game.stats.spent) + cost
 			var newl := (14.0 + Game.reach() * 0.012) * randf_range(0.6, 1.4) * Game.trend() * hustle
-			newl = Game.public.add_listeners(newl, Public.SCOPE_REACH) * Game.public.scale()
+			var l1 := Game.listeners
+			Game.public.add_listeners(newl, Public.SCOPE_REACH)
+			newl = maxf(0.0, Game.listeners - l1)
 			Game.public.pulse(Public.SCOPE_REACH, 0.015)
 			Game.buzz += 0.4
 			line(rep, "Promotion push (%s): +%s listeners." % [U.money(cost), U.num(newl)], "good")
@@ -244,6 +248,16 @@ static func is_big(tier: String) -> bool:
 	return tier in ["Large", "Arena", "Stadium"]
 
 
+## People travel further for bigger shows: nobody crosses the country for a
+## pub gig, plenty do for Wombley.
+static func travel_factor(tier: String) -> float:
+	match tier:
+		"Large": return 1.5
+		"Arena": return 2.2
+		"Stadium": return 3.0
+	return 1.0
+
+
 ## Bigger cities send more people wandering into gigs.
 static func city_walk_factor(c: int) -> float:
 	if c < 0:
@@ -273,10 +287,21 @@ static func generate_gig_offers() -> void:
 	Game.gig_month = U.date(Game.week).month_idx
 	Game.gig_booked = -1
 	Game.gig_skipped = false
-	var d := Game.draw()
+	# A venue books you if fans and listeners alone should fill its "draw".
 	var eligible: Array = []
+	var cache: Dictionary = {}
 	for i in Data.gigs.size():
-		if float(Data.gigs[i].draw) <= d:
+		var v: Dictionary = Data.gigs[i]
+		if float(v.draw) <= 0.0:
+			eligible.append(i)
+			continue
+		var c := Game.base_city
+		if RegionData.VENUE_CITY.has(v.id):
+			c = Game.public.find_city(RegionData.VENUE_CITY[v.id])
+		var key := "%d:%s" % [c, v.tier]
+		if not cache.has(key):
+			cache[key] = Game.expected_crowd(i, c)
+		if float(v.draw) <= float(cache[key]):
 			eligible.append(i)
 	var top: Array = eligible.slice(maxi(0, eligible.size() - 3))
 	var offers: Array = []
@@ -318,12 +343,16 @@ static func play_gig(idx: int) -> Dictionary:
 	var tour := Game.is_final_tour()
 	var city := Game.gig_city_of(idx)
 	var pub := Game.public
-	var s := pub.scale()
 	# Every fan and listener decides for themselves whether to come.
-	var roll := pub.gig_crowd(city, is_big(v.tier), tour)
+	var roll := pub.gig_crowd(city, travel_factor(v.tier), tour)
 	var cn: Array = roll.counts
-	var fans := (float(cn[Public.FAN]) + float(cn[Public.SUPER])) * s
-	var li := (float(cn[Public.LISTENER]) + float(cn[Public.REGULAR])) * s
+	var real: Dictionary = pub.real_of(cn)
+	var fans: float = real.fans
+	var li: float = real.listeners
+	var people := 0.0
+	for n in cn:
+		people += float(n)
+	var per_person: float = float(real.total) / maxf(1.0, people)
 	var w := walkin_range(v.tier)
 	var walk := float(cap) * randf_range(w.x, w.y) * Game.trend() * city_walk_factor(city) * (1.5 if tour else 1.0)
 	# Another band in your scene playing across town on the same night?
@@ -359,9 +388,11 @@ static func play_gig(idx: int) -> Dictionary:
 	Game.earn(tickets + bar + merch)
 	# The crowd's verdict changes how each of them feels; good walk-ins stick.
 	var r := crowd / 5.0
-	var conv := pub.apply_gig(roll.people, admit, crowd, city, int(round(a_walk / s * 0.6)))
-	var new_listeners := float(conv.listeners) * s
-	var new_fans := float(conv.fans) * s
+	var f0 := Game.true_fans
+	var l0 := Game.listeners + f0
+	pub.apply_gig(roll.people, admit, crowd, city, int(round(a_walk * 0.6 / Public.marginal(pub.count_at_least(Public.LISTENER)))))
+	var new_listeners := Game.listeners + Game.true_fans - l0
+	var new_fans := Game.true_fans - f0
 	if crowd >= 4.0:
 		pub.nudge(0.3)
 	elif crowd < 2.0:
@@ -387,7 +418,7 @@ static func play_gig(idx: int) -> Dictionary:
 	var g := {
 		"week": Game.week, "venue": idx, "venue_name": v.name, "tier": v.tier, "cap": cap, "attendance": att,
 		"city": Game.city_name(city), "fans": a_tf, "listeners": a_li, "walkins": a_walk,
-		"super_fans": int(float(cn[Public.SUPER]) * s * admit), "travelled": int(float(roll.travelled) * s * admit), "fill": fill, "crowd": crowd, "critic": critic,
+		"super_fans": int(float(real.super) * admit), "travelled": int(float(roll.travelled) * per_person * admit), "fill": fill, "crowd": crowd, "critic": critic,
 		"crowd_quote": crowd_quote, "critic_quote": MediaData.CRITIC_QUOTES[bucket_c].pick_random(),
 		"tickets": tickets, "bar": bar, "merch": merch, "hire": hire, "profit": tickets + bar + merch - hire,
 		"new_listeners": new_listeners, "new_fans": new_fans, "clash": clash, "final_tour": tour,

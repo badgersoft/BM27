@@ -104,9 +104,10 @@ gig likelihood, **variance** (appetite for new music; younger people run higher)
 - **Fans page:** the ladder, your reach, a **Top Fans** table (name, how long
   they've been a fan, home city) once you have more than 25 real fans, fan
   demographics, and a city-by-city breakdown.
-- **Scale:** while you're local, every person is one real person. As you spread,
-  each person comes to stand for more real people (up to ~60×), so 29,000 people
-  can still fill Wombley. The Fans page shows the current figure.
+- **Scale:** the UK has ~10 million music lovers. Each group (listeners, fans…)
+  is counted in bands like income tax: the first 99 people are one real person
+  each, then ×2, ×5, ×10 and so on up the curve, so 29,000 people can fill Wombley
+  without small numbers ever jumping. The Fans page shows the table.
 - **Saving:** traits are regenerated from a seed; only feelings are saved
   (compressed), adding ~10–50 KB.
 
