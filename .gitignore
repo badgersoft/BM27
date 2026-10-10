@@ -1,0 +1,9 @@
+# Godot 4
+.godot/
+/android/
+*.translation
+export_credentials.cfg
+/builds/
+*.tmp
+tests/out_*.png
+tests/shots/

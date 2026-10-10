@@ -1,0 +1,405 @@
+class_name WeekSim
+extends RefCounted
+## The weekly tick: rent, the band's focus for the week, training, fans,
+## charts, happiness, the monthly gig, events, and end-of-game checks.
+
+const FOCUS := {
+	"rehearse": {"name": "Rehearse", "icon": "amp", "train": 1.0,
+		"desc": "Full rehearsal week. Best for skills. A bit of a grind."},
+	"write": {"name": "Write Songs", "icon": "pen", "train": 0.4,
+		"desc": "Build up the song bank. Better songs, better gigs and singles."},
+	"busk": {"name": "Busk", "icon": "hat", "train": 0.35,
+		"desc": "Play the high street for spare change and a few new listeners."},
+	"promote": {"name": "Promote", "icon": "megaphone", "train": 0.3,
+		"desc": "Flyers, posters and socials. Costs money, wins listeners."},
+	"chill": {"name": "Chill Out", "icon": "moon", "train": 0.0,
+		"desc": "A week off. No progress, but everyone's mood lifts."},
+}
+const FOCUS_ORDER := ["rehearse", "write", "busk", "promote", "chill"]
+
+
+static func run() -> void:
+	var rep := {
+		"week": Game.week, "lines": [], "funds0": Game.funds, "fans0": Game.true_fans,
+		"listeners0": Game.listeners, "fame0": Game.fame(), "skill_gains": {},
+	}
+	_pay_rent(rep)
+	_apply_focus(rep)
+	_train(rep)
+	_organic_fans(rep)
+	Charts.weekly_update(true, rep)
+	_happiness(rep)
+	_birthdays(rep)
+	if U.date(Game.week).week_of_month == 4:
+		_resolve_month_gig(rep)
+	Events.roll_weekly(rep)
+	if Game.week % 2 == 0:
+		Events.queue_news()
+	_drift_world()
+	Game.week += 1
+	if U.date(Game.week).week_of_month == 1:
+		generate_gig_offers()
+		_monthly_trends()
+	_pending_album(rep)
+	_track_peaks()
+	_check_endings()
+	rep.funds1 = Game.funds
+	rep.fans1 = Game.true_fans
+	rep.listeners1 = Game.listeners
+	rep.fame1 = Game.fame()
+	Game.report = rep
+	if Settings.weekly_popup and not Game.game_over:
+		Game.queue.push_front({"type": "report"})
+
+
+static func line(rep: Dictionary, text: String, kind: String = "info") -> void:
+	(rep.lines as Array).append({"text": text, "kind": kind})
+
+
+# ------------------------------------------------------------------- rent
+
+static func _pay_rent(rep: Dictionary) -> void:
+	var rent := Game.rent_of(Game.practice_idx)
+	if rent <= 0.0:
+		return
+	if Game.funds >= rent:
+		Game.funds -= rent
+		Game.stats.spent = float(Game.stats.spent) + rent
+		line(rep, "Rent at %s: %s" % [Data.practice_venue(Game.practice_idx).name, U.money(rent)], "cost")
+		return
+	# Can't pay: drop to the best place we can afford (Nan's shed is free).
+	var idx := Game.practice_idx
+	while idx > 0 and Game.rent_of(idx) > Game.funds:
+		idx -= 1
+	Game.practice_idx = idx
+	var r2 := Game.rent_of(idx)
+	Game.funds -= r2
+	line(rep, "Couldn't make rent! Moved down to %s." % Data.practice_venue(idx).name, "bad")
+	Game.add_inbox("Evicted!", "You couldn't pay the rent, so the band has moved to %s." % Data.practice_venue(idx).name, "alert", "bad")
+
+
+# ------------------------------------------------------------------ focus
+
+static func _apply_focus(rep: Dictionary) -> void:
+	var f := Game.focus
+	var fat_delta: float = {"rehearse": 1.0, "write": 0.5, "busk": 0.6, "promote": 0.3, "chill": -3.5}[f]
+	Game.flags.fatigue = clampf(float(Game.flags.get("fatigue", 0.0)) + fat_delta, 0.0, 10.0)
+	var hustle := 1.4 if Game.has_perk("hustler") else 1.0
+	var ms := Game.members()
+	var avg_skill := 0.0
+	for m in ms:
+		avg_skill += float(m.skill)
+	avg_skill = avg_skill / maxf(1.0, ms.size())
+	match f:
+		"write":
+			var venue: Dictionary = Data.practice_venue(Game.practice_idx)
+			var gain: float = (0.6 + avg_skill / 100.0) * float(venue.train) * 1.3 * (1.0 - Game.songcraft / 115.0)
+			gain *= 0.5 + ms.size() / 8.0
+			Game.songcraft = clampf(Game.songcraft + gain, 0.0, 100.0)
+			line(rep, "Songwriting week: song bank +%.1f (now %d)." % [gain, int(Game.songcraft)], "good")
+		"busk":
+			var cash := (8.0 + avg_skill * 0.9) * randf_range(0.6, 1.4) * hustle * Settings.income_mult() * (ms.size() / 4.0)
+			var fame := Game.fame()
+			var newl := randf_range(3.0, 10.0) * hustle + Game.reach() * 0.002 * (1.0 + fame / 30.0)
+			Game.earn(cash)
+			Game.listeners += newl
+			if fame > 50.0:
+				line(rep, "A surprise busk caused a minor riot on the high street! %s in the hat, +%s listeners." % [U.money(cash), U.num(newl)], "good")
+			else:
+				line(rep, "Busking earned %s and %s new listeners." % [U.money(cash), U.num(newl)], "good")
+		"promote":
+			var cost := Game.promote_cost()
+			if Game.funds < cost:
+				line(rep, "Couldn't afford promotion (%s), so the band rehearsed instead." % U.money(cost), "bad")
+				Game.focus = "rehearse"
+				return
+			Game.funds -= cost
+			Game.stats.spent = float(Game.stats.spent) + cost
+			var newl := (14.0 + Game.reach() * 0.012) * randf_range(0.6, 1.4) * Game.trend() * hustle
+			Game.listeners += newl
+			Game.buzz += 0.4
+			line(rep, "Promotion push (%s): +%s listeners." % [U.money(cost), U.num(newl)], "good")
+		"chill":
+			line(rep, "The band took a week off. Everyone feels better for it.", "good")
+
+
+# --------------------------------------------------------------- training
+
+static func _train(rep: Dictionary) -> void:
+	var venue: Dictionary = Data.practice_venue(Game.practice_idx)
+	var fmult: float = FOCUS[Game.focus].train
+	var perk := 1.2 if Game.has_perk("perfectionist") else 1.0
+	for m in Game.members():
+		var gap := float(m.pot) - float(m.skill)
+		var age := int(m.age)
+		var age_mult := 1.25 if age <= 21 else (1.0 if age <= 27 else (0.75 if age <= 34 else 0.5))
+		var happy_mult := 0.6 + 0.8 * float(m.happy) / 100.0
+		if gap > 0.0:
+			var gain := gap * 0.014 * float(venue.train) * fmult * happy_mult * age_mult * perk * randf_range(0.8, 1.2)
+			m.skill = minf(float(m.pot), float(m.skill) + gain)
+			rep.skill_gains[m.id] = gain
+		elif fmult >= 1.0 and Game.practice_idx >= 8 and float(m.happy) > 85.0 and randf() < 0.012:
+			# Extremely unusual circumstances: a genuine breakthrough.
+			var bump := randf_range(1.0, 3.0)
+			m.pot = minf(99.0, float(m.pot) + bump)
+			line(rep, "%s had a breakthrough in rehearsal and found a new level!" % m.name, "good")
+			Game.add_inbox("Breakthrough!", "Something clicked for %s. Their potential has risen." % m.name, "sparkle", "good")
+	# Free agents keep practising too, slowly.
+	for id in Game.musicians:
+		var fm: Dictionary = Game.musicians[id]
+		if fm.status == "free" and float(fm.pot) > float(fm.skill):
+			fm.skill = float(fm.skill) + (float(fm.pot) - float(fm.skill)) * 0.003
+
+
+# ------------------------------------------------------------------- fans
+
+static func _organic_fans(rep: Dictionary) -> void:
+	var q := clampf(Game.band_score() / 50.0, 0.3, 2.5)
+	var viral := 1.5 if Game.has_perk("viral") else 1.0
+	var decay := Settings.decay_mult()
+	# Streaming audiences grow with quality but get harder to hold as they get big.
+	var growth := Game.listeners * 0.006 * minf(q, 1.6) * Game.trend() * viral
+	var loss := Game.listeners * (0.009 + 0.0026 * log(maxf(Game.listeners, 10.0)) / log(10.0)) * decay
+	Game.listeners = maxf(0.0, Game.listeners + growth - loss)
+	var faithful := 0.6 if Game.has_perk("faithful") else 1.0
+	var tf_loss := Game.true_fans * 0.003 * decay * faithful
+	var tf_gain := Game.listeners * 0.00025 * minf(q, 1.6)
+	Game.true_fans = maxf(0.0, Game.true_fans + tf_gain - tf_loss)
+	Game.buzz *= 0.9
+
+
+# -------------------------------------------------------------- happiness
+
+static func _happiness(rep: Dictionary) -> void:
+	var venue: Dictionary = Data.practice_venue(Game.practice_idx)
+	var fame := Game.fame()
+	var slump := Game.peak_reach > 300.0 and Game.reach() < Game.peak_reach * 0.6
+	var complaint_raised := false
+	for m in Game.members():
+		var target := 55.0
+		var dist := Data.genre_distance(m.genre, Game.genre)
+		target += 8.0 if dist == 0 else (-2.0 if dist == 1 else -6.0)
+		target += clampf((int(m.inst) - Data.expected_inst_tier(m.skill)) * 3.0, -9.0, 9.0)
+		target += float(venue.happy)
+		if Game.week - Game.last_gig_week <= 4:
+			target += (Game.last_gig_rating - 3.0) * 3.0
+		target += minf(4.0, fame / 25.0)
+		target -= float(Game.flags.get("fatigue", 0.0)) * 1.5
+		target += (int(m.ease) - 3) * 4.0
+		if Game.has_perk("roadie"):
+			target += 6.0
+		if slump:
+			target -= 15.0
+		if Game.funds < 50.0:
+			target -= 4.0
+		if int(m.tier) > 0 and fame < float(m.min_fame):
+			target -= 6.0
+		if Game.is_final_tour():
+			target += 10.0
+		var rate := 0.10 + (5 - int(m.ease)) * 0.03
+		var h := float(m.happy)
+		h += (target - h) * rate
+		match Game.focus:
+			"rehearse": h -= 0.8
+			"chill": h += 7.0 * (0.6 + int(m.ease) * 0.1)
+		m.happy = clampf(h, 0.0, 100.0)
+		m.gift_fatigue = maxf(0.0, float(m.gift_fatigue) - 1.0)
+		if Game.is_final_tour():
+			continue
+		# Unhappy musicians speak up, and the miserable ones walk.
+		if float(m.happy) < 12.0 and randf() < 0.3:
+			Events.queue_member_left(m)
+			continue
+		if float(m.happy) < 28.0 and Game.week - int(m.last_complaint) >= 6 and not complaint_raised:
+			m.last_complaint = Game.week
+			complaint_raised = true
+			Game.queue.append({"type": "complaint", "mid": m.id})
+
+
+## Everyone gets a year older once a year (week 1 of each year).
+static func _birthdays(rep: Dictionary) -> void:
+	if Game.week % U.WEEKS_PER_YEAR != 0:
+		return
+	for id in Game.musicians:
+		var m: Dictionary = Game.musicians[id]
+		m.age = int(m.age) + 1
+		if int(m.age) > 34:
+			m.pot = maxf(5.0, float(m.pot) - randf_range(0.0, 1.5))
+			if float(m.skill) > float(m.pot):
+				m.skill = float(m.pot)
+	line(rep, "Happy New Year! Everyone's a year older.", "info")
+
+
+# -------------------------------------------------------------------- gigs
+
+static func walkin_range(tier: String) -> Vector2:
+	match tier:
+		"Small": return Vector2(0.12, 0.45)
+		"Medium": return Vector2(0.06, 0.25)
+		"Large": return Vector2(0.04, 0.18)
+		"Arena": return Vector2(0.03, 0.14)
+	return Vector2(0.02, 0.12)
+
+
+static func generate_gig_offers() -> void:
+	Game.gig_month = U.date(Game.week).month_idx
+	Game.gig_booked = -1
+	Game.gig_skipped = false
+	var d := Game.draw()
+	var eligible: Array = []
+	for i in Data.gigs.size():
+		if float(Data.gigs[i].draw) <= d:
+			eligible.append(i)
+	var top: Array = eligible.slice(maxi(0, eligible.size() - 3))
+	var offers: Array = []
+	for i in top:
+		if top.size() > 1 and randf() < 0.15:
+			continue
+		offers.append(i)
+	if offers.is_empty() and not top.is_empty():
+		offers.append(top[top.size() - 1])
+	if not Game.is_final_tour() and randf() < 0.06:
+		offers = []
+	Game.gig_offers = offers
+
+
+static func _resolve_month_gig(rep: Dictionary) -> void:
+	if Game.gig_booked >= 0:
+		var g := play_gig(Game.gig_booked)
+		Game.queue.push_front({"type": "gig", "gig": g})
+		line(rep, "Gig night at %s: %d people, %s crowd rating." % [g.venue_name, g.attendance, U.stars_text(g.crowd)], "good" if g.crowd >= 3.0 else "bad")
+		Game.gig_booked = -1
+	elif Game.gig_offers.is_empty():
+		line(rep, "No venues would book you this month. Fans understand.", "info")
+	else:
+		# Skipped, or simply forgot to book.
+		Game.true_fans *= 0.98
+		Game.listeners *= 0.95
+		var why := "You skipped this month's gig." if Game.gig_skipped else "You didn't book a gig this month!"
+		line(rep, why + " Some fans drifted away.", "bad")
+		Game.add_inbox("No gig this month", why + " A few fans have drifted off.", "ticket", "bad")
+
+
+static func play_gig(idx: int) -> Dictionary:
+	var v := Data.gig_venue(idx)
+	var cap: int = v.cap
+	var tour := Game.is_final_tour()
+	var li_rate := 0.035 * (2.5 if tour else 1.0)
+	var w := walkin_range(v.tier)
+	var tf := Game.true_fans * 0.6 * randf_range(0.85, 1.1)
+	var li := Game.listeners * li_rate * randf_range(0.8, 1.2)
+	var walk := float(cap) * randf_range(w.x, w.y) * Game.trend() * (1.5 if tour else 1.0)
+	# Another band in your scene playing across town on the same night?
+	var clash := ""
+	var f := Game.fame()
+	var rivals_near: Array = Game.rivals.filter(func(r): return r.genre == Game.genre and absf(float(r.fame) - f) < 12.0)
+	if not rivals_near.is_empty() and randf() < 0.25:
+		clash = rivals_near.pick_random().name
+		li *= 0.8
+		walk *= 0.8
+	# Fill the room: true fans get in first, then listeners, then walk-ins.
+	var a_tf := int(minf(tf, cap))
+	var a_li := int(minf(li, cap - a_tf))
+	var a_walk := int(minf(walk, cap - a_tf - a_li))
+	var att := a_tf + a_li + a_walk
+	var fill := float(att) / float(cap)
+	# Performance against what this crowd expects.
+	var perf := Game.band_score() + randf_range(-9.0, 9.0) + minf(5.0, fill * 5.0)
+	if not Game.band_complete():
+		perf *= 0.75
+	var expect := 18.0 + idx * 6.0
+	var crowd := clampf(snappedf(3.0 + (perf - expect) / 11.0, 0.5), 0.5, 5.0)
+	var critic := clampf(snappedf(2.6 + (perf - expect - 4.0) / 11.0 + randf_range(-0.7, 0.7), 0.5), 0.5, 5.0)
+	# Money.
+	var mult := Settings.income_mult()
+	var tickets := att * float(v.ticket) * mult
+	var bar := att * float(v.bar) * 0.5 * mult
+	var merch := att * float(v.merch) * (1.5 if tour else 1.0) * mult
+	var hire := Game.venue_hire(idx)
+	Game.earn(tickets + bar + merch)
+	# Converting the crowd.
+	var r := crowd / 5.0
+	var new_listeners := a_walk * (0.15 + 0.6 * r * r) + att * r * 0.12
+	var new_fans := a_li * (0.03 + 0.25 * r * r * r) + a_walk * 0.02 * r
+	var lost_fans := 0.0
+	if crowd < 2.0:
+		lost_fans = Game.true_fans * 0.03
+		new_listeners -= Game.listeners * 0.04
+	Game.listeners = maxf(0.0, Game.listeners + new_listeners - new_fans)
+	Game.true_fans = maxf(0.0, Game.true_fans + new_fans - lost_fans)
+	Game.buzz += r * 4.0 * float(idx + 1) / 15.0
+	for m in Game.members():
+		m.happy = clampf(float(m.happy) + (crowd - 3.0) * 4.0, 0.0, 100.0)
+	Game.flags.fatigue = clampf(float(Game.flags.get("fatigue", 0.0)) + 1.0, 0.0, 10.0)
+	Game.last_gig_rating = crowd
+	Game.last_gig_week = Game.week
+	Game.stats.gigs = int(Game.stats.gigs) + 1
+	Game.stats.total_attendance = int(Game.stats.total_attendance) + att
+	Game.stats.best_rating = maxf(float(Game.stats.best_rating), crowd)
+	if crowd >= 3.0:
+		Game.stats.best_venue = maxi(int(Game.stats.best_venue), idx)
+	if tour:
+		Game.flags.final_tour_gigs = int(Game.flags.final_tour_gigs) + 1
+	var bucket := clampi(int(crowd) - 1, 0, 4)
+	var bucket_c := clampi(int(critic) - 1, 0, 4)
+	var g := {
+		"week": Game.week, "venue": idx, "venue_name": v.name, "tier": v.tier, "cap": cap, "attendance": att,
+		"true_fans": a_tf, "listeners": a_li, "walkins": a_walk, "fill": fill, "crowd": crowd, "critic": critic,
+		"crowd_quote": MediaData.CROWD_QUOTES[bucket].pick_random(), "critic_quote": MediaData.CRITIC_QUOTES[bucket_c].pick_random(),
+		"tickets": tickets, "bar": bar, "merch": merch, "hire": hire, "profit": tickets + bar + merch - hire,
+		"new_listeners": new_listeners, "new_fans": new_fans - lost_fans, "clash": clash, "final_tour": tour,
+		"colour": v.colour,
+	}
+	Game.gig_history.push_front(g)
+	if Game.gig_history.size() > 60:
+		Game.gig_history.resize(60)
+	return g
+
+
+# ------------------------------------------------------------------ world
+
+static func _drift_world() -> void:
+	for r in Game.rivals:
+		var drift := randf_range(-0.35, 0.35)
+		if bool(r.local):
+			r.fame = clampf(float(r.fame) + drift + 0.03, 1.0, 45.0)
+		else:
+			r.fame = clampf(float(r.fame) + drift * 0.5, 30.0, 99.0)
+
+
+static func _monthly_trends() -> void:
+	for gid in Game.trends:
+		var t: float = Game.trends[gid]
+		t += randf_range(-0.06, 0.06) + (1.0 - t) * 0.08
+		Game.trends[gid] = clampf(t, 0.7, 1.3)
+
+
+static func _pending_album(rep: Dictionary) -> void:
+	var pa: Dictionary = Game.flags.pending_album
+	if pa.is_empty() or Game.week < int(pa.week):
+		return
+	Events.release_now(pa)
+	Game.flags.pending_album = {}
+	line(rep, "Your album '%s' is out now!" % pa.title, "good")
+
+
+static func _track_peaks() -> void:
+	Game.peak_reach = maxf(Game.peak_reach, Game.reach())
+	var f := Game.fame()
+	Game.stats.peak_fame = maxf(float(Game.stats.peak_fame), f)
+	if f >= 65.0:
+		Game.flags.famous_weeks = int(Game.flags.famous_weeks) + 1
+
+
+static func _check_endings() -> void:
+	if Game.is_final_tour() and Game.final_tour_weeks_left() <= 0:
+		Game.queue.append({"type": "end", "reason": "retired"})
+		return
+	if Game.is_final_tour():
+		return
+	# Falling apart: big slide from the peak plus a miserable band.
+	var collapse := Game.peak_reach > 500.0 and Game.reach() < Game.peak_reach * 0.35
+	var misery := Game.members().size() >= 3 and Game.avg_happiness() < 18.0
+	if (collapse and Game.avg_happiness() < 35.0) or misery:
+		if randf() < 0.12 and not Game.queue.any(func(e): return e.type == "breakup"):
+			Game.queue.append({"type": "breakup"})

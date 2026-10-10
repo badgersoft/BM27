@@ -1,0 +1,124 @@
+class_name U
+extends RefCounted
+## Shared formatting and calendar helpers.
+## Calendar: 4 weeks a month, 12 months (48 weeks) a year.
+
+const WEEKS_PER_MONTH := 4
+const WEEKS_PER_YEAR := 48
+const MONTHS := ["January", "February", "March", "April", "May", "June", "July", "August",
+	"September", "October", "November", "December"]
+
+
+static func date(week: int) -> Dictionary:
+	var w := week - 1
+	var month_idx := w / WEEKS_PER_MONTH
+	return {
+		"week": week,
+		"week_of_month": (w % WEEKS_PER_MONTH) + 1,
+		"month_idx": month_idx,
+		"month": MONTHS[month_idx % 12],
+		"month_short": MONTHS[month_idx % 12].substr(0, 3).to_upper(),
+		"year": w / WEEKS_PER_YEAR + 1,
+	}
+
+
+static func date_label(week: int) -> String:
+	var d := date(week)
+	return "WK %d · %s · Y%d" % [d.week_of_month, d.month_short, d.year]
+
+
+static func duration(weeks: int) -> String:
+	weeks = maxi(0, weeks)
+	var y := weeks / WEEKS_PER_YEAR
+	var w := weeks % WEEKS_PER_YEAR
+	if y == 0:
+		return "%dw" % w
+	return "%dy %dw" % [y, w]
+
+
+static func _commas(n: int) -> String:
+	var s := str(absi(n))
+	var out := ""
+	while s.length() > 3:
+		out = "," + s.substr(s.length() - 3) + out
+		s = s.substr(0, s.length() - 3)
+	return ("-" if n < 0 else "") + s + out
+
+
+static func _trim(s: String) -> String:
+	if s.contains("."):
+		while s.ends_with("0"):
+			s = s.substr(0, s.length() - 1)
+		if s.ends_with("."):
+			s = s.substr(0, s.length() - 1)
+	return s
+
+
+## £950 · £9,850 · £12.4k · £1.25M
+static func money(v: float) -> String:
+	var neg := v < 0.0
+	v = absf(v)
+	var s: String
+	if v >= 1e6:
+		s = "£" + _trim("%.2f" % (v / 1e6)) + "M"
+	elif v >= 1e4:
+		s = "£" + _trim("%.1f" % (v / 1e3)) + "k"
+	else:
+		s = "£" + _commas(int(round(v)))
+	return ("−" if neg else "") + s
+
+
+static func money_full(v: float) -> String:
+	return ("−" if v < 0.0 else "") + "£" + _commas(int(round(absf(v))))
+
+
+## 950 · 9,850 · 12.4k · 1.25M
+static func num(v: float) -> String:
+	var a := absf(v)
+	var s: String
+	if a >= 1e6:
+		s = _trim("%.2f" % (a / 1e6)) + "M"
+	elif a >= 1e4:
+		s = _trim("%.1f" % (a / 1e3)) + "k"
+	else:
+		s = _commas(int(round(a)))
+	return ("−" if v < -0.5 else "") + s
+
+
+static func signed_num(v: float) -> String:
+	if v >= 0.5:
+		return "+" + num(v)
+	if v <= -0.5:
+		return "−" + num(-v)
+	return "±0"
+
+
+static func signed_money(v: float) -> String:
+	if v >= 0.5:
+		return "+" + money(v)
+	if v <= -0.5:
+		return "−" + money(-v)
+	return "£0"
+
+
+static func ordinal(n: int) -> String:
+	var v := n % 100
+	if v >= 11 and v <= 13:
+		return "%dth" % n
+	match n % 10:
+		1: return "%dst" % n
+		2: return "%dnd" % n
+		3: return "%drd" % n
+	return "%dth" % n
+
+
+static func plural(n: int, one: String, many: String = "") -> String:
+	if n == 1:
+		return one
+	return many if many != "" else one + "s"
+
+
+static func stars_text(rating: float) -> String:
+	var full := int(floor(rating))
+	var half := rating - full >= 0.5
+	return "★".repeat(full) + ("½" if half else "")
