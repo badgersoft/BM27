@@ -42,6 +42,7 @@ static func run() -> void:
 	_organic_fans(rep)
 	Charts.weekly_update(true, rep)
 	_happiness(rep)
+	_member_fame(rep)
 	_birthdays(rep)
 	if U.date(Game.week).week_of_month == 4:
 		_resolve_month_gig(rep)
@@ -196,6 +197,34 @@ static func _organic_fans(rep: Dictionary) -> void:
 
 
 # -------------------------------------------------------------- happiness
+
+# ------------------------------------------------------------ member fame
+
+## How much of the spotlight each role tends to catch.
+const SPOTLIGHT := {"vocals": 1.2, "guitar": 0.95, "drums": 0.8, "bass": 0.7}
+
+
+## Each member's own fame drifts toward the band's, scaled by their role and a
+## personal "flair". Fame comes quickly and fades slowly.
+static func _member_fame(rep: Dictionary) -> void:
+	var bf := Game.fame()
+	for m in Game.members():
+		var cur := float(m.get("fame", 0.0))
+		var target := clampf(bf * float(SPOTLIGHT.get(m.role, 1.0)) * member_flair(m), 0.0, 100.0)
+		var nf := clampf(cur + (target - cur) * (0.05 if target > cur else 0.015), 0.0, 100.0)
+		m.fame = nf
+		for mark in [25, 50, 75, 90]:
+			if cur < mark and nf >= mark:
+				var word: String = {25: "getting recognised in the street", 50: "a name in their own right", 75: "properly famous", 90: "a household name"}[mark]
+				line(rep, "%s is %s." % [m.name, word], "good")
+				if mark >= 50:
+					Game.add_inbox("%s is famous" % m.name, "%s is now %s. Famous people do strange things. Keep them happy." % [m.name, word], "star", "info")
+
+
+## A fixed per-person multiplier (0.85 to 1.15): some people just shine.
+static func member_flair(m: Dictionary) -> float:
+	return 0.85 + float(absi(hash(str(m.id) + str(m.name))) % 31) / 100.0
+
 
 static func _happiness(rep: Dictionary) -> void:
 	var venue: Dictionary = Data.practice_venue(Game.practice_idx)
@@ -426,6 +455,10 @@ static func play_gig(idx: int) -> Dictionary:
 	for m in Game.members():
 		m.happy = clampf(float(m.happy) + (crowd - 3.0) * 4.0, 0.0, 100.0)
 	Game.flags.fatigue = clampf(float(Game.flags.get("fatigue", 0.0)) + 1.0, 0.0, 10.0)
+	if crowd >= 4.5:
+		var singer := Game.member("vocals")
+		if not singer.is_empty():
+			singer.fame = minf(100.0, float(singer.get("fame", 0.0)) + 0.3 + idx * 0.05)
 	Game.last_gig_rating = crowd
 	Game.last_gig_week = Game.week
 	Game.stats.gigs = int(Game.stats.gigs) + 1

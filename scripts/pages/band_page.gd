@@ -65,6 +65,14 @@ func _member_card(role: String) -> Control:
 	hb.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	bars.add_child(hb)
 	v.add_child(bars)
+	var fb := MusicianView.fame_block(m, 200)
+	fb.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	var frow := UI.hbox(20)
+	frow.add_child(fb)
+	var fame_note := UI.label(_fame_note(m), "Small", UITheme.MUTED, true)
+	fame_note.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	frow.add_child(fame_note)
+	v.add_child(frow)
 	var bio := UI.label(m.bio, "BodyMuted", null, true)
 	bio.add_theme_font_size_override("font_size", 15)
 	v.add_child(bio)
@@ -211,3 +219,12 @@ func _genre_dialog() -> void:
 	v.add_child(grid)
 	v.add_child(UI.button("Keep it as it is", "x", "Ghost", func(): main.close_modal(modal)))
 	modal = main.open_modal(v, 820, true)
+
+
+static func _fame_note(m: Dictionary) -> String:
+	var f := float(m.get("fame", 0.0))
+	if f >= 55.0:
+		return "Famous enough to cause trouble, or do some good. Happy members tend to do good."
+	if m.role == "vocals":
+		return "Singers catch the most spotlight. Great gigs make them famous faster."
+	return "Fame follows the band's, and some people just shine more than others."

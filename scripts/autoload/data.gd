@@ -129,7 +129,7 @@ func _base_musician() -> Dictionary:
 		"id": "", "name": "", "role": "", "g": "m", "age": 20, "skill": 10.0, "pot": 20.0, "tier": 0,
 		"genre": "rock", "ease": 3, "happy": 60.0, "bio": "", "look": {}, "inst": 0,
 		"status": "free", "joined": 0, "original": false, "cooldown": 0, "grudge": false,
-		"last_complaint": -99, "gift_fatigue": 0.0, "min_fame": 0,
+		"last_complaint": -99, "gift_fatigue": 0.0, "min_fame": 0, "fame": 0.0, "last_fame_event": -99,
 	}
 
 
@@ -148,6 +148,7 @@ func _make_star(s: Dictionary, rng: RandomNumberGenerator) -> Dictionary:
 	m.happy = rng.randf_range(55.0, 80.0)
 	m.inst = clampi(expected_inst_tier(m.skill), 5, 7)
 	m.min_fame = 35 if s.tier == 1 else 60
+	m.fame = 35.0 if s.tier == 1 else 60.0
 	var look := random_look(rng, m.g, m.age, m.genre)
 	look.glasses = "none"
 	look.facial = "none"

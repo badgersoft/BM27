@@ -32,6 +32,35 @@ static func skill_block(m: Dictionary, width: float = 180.0) -> VBoxContainer:
 	return v
 
 
+## Their own fame, with a word for it and a hint when it's getting risky.
+static func fame_block(m: Dictionary, width: float = 150.0) -> VBoxContainer:
+	var f := float(m.get("fame", 0.0))
+	var v := UI.vbox(4)
+	var top := UI.hbox(6)
+	top.add_child(Icons.make("star", 16, UITheme.GOLD))
+	top.add_child(UI.label(fame_word(f).to_upper(), "Caps", UITheme.GOLD))
+	top.add_child(UI.spacer())
+	top.add_child(UI.label(str(int(f)), "Strong", UITheme.GOLD))
+	v.add_child(top)
+	v.add_child(UI.meter(f / 100.0, UITheme.GOLD, 8.0))
+	v.custom_minimum_size.x = width
+	v.tooltip_text = "Personal fame. Above 55, members start doing unpredictable things: some good, some not. Happy members tend to use it for good."
+	v.mouse_filter = Control.MOUSE_FILTER_PASS
+	return v
+
+
+static func fame_word(f: float) -> String:
+	if f >= 90.0:
+		return "Household name"
+	if f >= 75.0:
+		return "Celebrity"
+	if f >= 55.0:
+		return "Famous"
+	if f >= 25.0:
+		return "Recognised"
+	return "Unknown"
+
+
 static func happy_block(m: Dictionary, width: float = 150.0) -> VBoxContainer:
 	var h := float(m.happy)
 	var col := UI.happiness_color(h)

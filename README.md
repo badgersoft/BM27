@@ -121,6 +121,7 @@ gig likelihood, **variance** (appetite for new music; younger people run higher)
 - **Gig clashes**: a rival in your genre playing across town can pinch your crowd.
 - **Genre trends** that shift monthly (Scene page).
 - **Random events**: dead vans, flooded rehearsal rooms, viral clips, advert offers, dodgy kebabs.
+- **Member fame**: each member has their own fame. Singers catch the most spotlight. Past 55, famous members start doing things: dressing-room demands, tabloid scandals, solo-album rumours… or opening a school, fronting a charity single, speaking up for a country nobody covers. Happy members lean towards the good stuff.
 - **Hidden potential**: you see a range until someone joins (Jam the *Talent Spotter* sees it exactly).
 - **Hall of Fame** with a legacy score, plus three difficulty levels.
 

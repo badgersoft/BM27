@@ -17,7 +17,7 @@ static func present(main: Control, ev: Dictionary, done: Callable) -> void:
 		"name_release": _name_release(main, ev, done)
 		"label": _label(main, ev, done)
 		"star": _star(main, ev, done)
-		"random": _random(main, ev, done)
+		"random", "fame": _random(main, ev, done)
 		"doc", "film": _media_deal(main, ev, done)
 		"breakup": _breakup(main, ev, done)
 		"end": _end(main, ev, done)
@@ -482,23 +482,24 @@ static func _star(main: Control, ev: Dictionary, done: Callable) -> void:
 # ----------------------------------------------------------------- random
 
 static func _random(main: Control, ev: Dictionary, done: Callable) -> void:
-	var e: Dictionary = MediaData.RANDOM_EVENTS[int(ev.idx)]
+	var e: Dictionary = Events.event_def(ev)
 	var mem: Dictionary = Game.musicians.get(ev.get("mid", ""), {})
 	var mname: String = mem.name if not mem.is_empty() else "Someone"
-	var v := _frame("Meanwhile...", e.title, e.icon, UITheme.GOLD)
+	var fame_ev: bool = ev.type == "fame"
+	var v := _frame("Fame game" if fame_ev else "Meanwhile...", e.title, e.icon, UITheme.GOLD)
 	if not mem.is_empty():
 		var h := UI.hbox(14)
 		h.add_child(Portrait.make(mem.look, 64))
-		var t := UI.label(Game.cityize(e.text.replace("{member}", mname).replace("{rival}", ev.get("rival", ""))), "Body", null, true)
+		var t := UI.label(Events.event_text(e.text, ev, mname), "Body", null, true)
 		t.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		h.add_child(t)
 		v.add_child(h)
 	else:
-		v.add_child(UI.label(Game.cityize(e.text.replace("{member}", mname).replace("{rival}", ev.get("rival", ""))), "Body", null, true))
+		v.add_child(UI.label(Events.event_text(e.text, ev, mname), "Body", null, true))
 	var m: Control
 	for i in e.choices.size():
 		var c: Dictionary = e.choices[i]
-		var txt: String = c.label
+		var txt: String = c.label.replace("{member}", mname)
 		var dis := false
 		if c.has("cost_scale"):
 			var cost := Events.random_cost(c)

@@ -3,7 +3,7 @@ extends RefCounted
 ## Event generation (interviews, producers, labels, stars, documentaries,
 ## random mishaps, newspapers) and resolution of the player's choices.
 
-const DECISION_TYPES := ["interview", "producer", "label", "star", "doc", "film", "random", "complaint", "left", "breakup"]
+const DECISION_TYPES := ["interview", "producer", "label", "star", "doc", "film", "random", "fame", "complaint", "left", "breakup"]
 
 
 static func _decisions_queued() -> int:
@@ -72,6 +72,12 @@ static func roll_weekly(_rep: Dictionary) -> void:
 		var vname: String = Data.gig_venue(int(Game.stats.best_venue)).name
 		Game.queue.append({"type": "film", "fee": fee2, "venue": vname,
 			"title": MediaData.FILM_TITLES.pick_random().replace("{band}", Game.band_name).replace("{venue}", vname)})
+	# Famous members get up to things, good and bad.
+	if _decisions_queued() < 2 and wk - int(flags.get("last_fame_week", -99)) >= 4:
+		var ev3 := _fame_event()
+		if not ev3.is_empty():
+			flags.last_fame_week = wk
+			Game.queue.append(ev3)
 	# Random mishaps and opportunities.
 	if _decisions_queued() < 2 and randf() < 0.09:
 		var ev2 := _random_event()
@@ -136,6 +142,40 @@ static func _random_event() -> Dictionary:
 	var locals: Array = Game.rivals.filter(func(r): return bool(r.local))
 	ev.rival = locals.pick_random().name if not locals.is_empty() else "Some band"
 	return ev
+
+
+## The definition behind a "random" or "fame" event.
+static func event_def(ev: Dictionary) -> Dictionary:
+	return MediaData.FAME_EVENTS[int(ev.idx)] if ev.type == "fame" else MediaData.RANDOM_EVENTS[int(ev.idx)]
+
+
+static func _fame_event() -> Dictionary:
+	for m in Game.members():
+		var mf := float(m.get("fame", 0.0))
+		if mf < 55.0 or Game.week - int(m.get("last_fame_event", -99)) < 10:
+			continue
+		if randf() >= 0.015 + (mf - 55.0) / 45.0 * 0.04:
+			continue
+		# Happy members tend to use their fame for good.
+		var good := randf() < clampf(0.35 + (float(m.happy) - 50.0) / 150.0, 0.15, 0.7)
+		var pool: Array = []
+		for i in MediaData.FAME_EVENTS.size():
+			var e: Dictionary = MediaData.FAME_EVENTS[i]
+			if bool(e.good) == good and float(e.min_fame) <= mf:
+				pool.append(i)
+		if pool.is_empty():
+			continue
+		m.last_fame_event = Game.week
+		var locals: Array = Game.rivals.filter(func(r): return float(r.fame) >= 30.0)
+		return {"type": "fame", "idx": pool.pick_random(), "mid": m.id,
+			"rival": locals.pick_random().name if not locals.is_empty() else "another band",
+			"country": MediaData.CAUSE_COUNTRIES.pick_random()}
+	return {}
+
+
+## Fills an event's text placeholders.
+static func event_text(t: String, ev: Dictionary, member_name: String) -> String:
+	return Game.cityize(t.replace("{member}", member_name).replace("{rival}", str(ev.get("rival", ""))).replace("{country}", str(ev.get("country", ""))))
 
 
 static func queue_member_left(m: Dictionary) -> void:
@@ -332,7 +372,7 @@ static func resolve(ev: Dictionary, choice: Variant) -> Dictionary:
 		"name_release": return _resolve_name(ev, choice)
 		"label": return _resolve_label(ev, choice)
 		"star": return _resolve_star(ev, choice)
-		"random": return _resolve_random(ev, choice)
+		"random", "fame": return _resolve_random(ev, choice)
 		"doc", "film": return _resolve_media_deal(ev, choice)
 		"breakup": return _resolve_breakup(choice)
 		"end":
@@ -546,7 +586,7 @@ static func _resolve_star(ev: Dictionary, choice: Variant) -> Dictionary:
 
 
 static func _resolve_random(ev: Dictionary, choice: Variant) -> Dictionary:
-	var e: Dictionary = MediaData.RANDOM_EVENTS[int(ev.idx)]
+	var e: Dictionary = event_def(ev)
 	var c: Dictionary = e.choices[int(choice)]
 	var f := Game.fame()
 	var m: Dictionary = Game.musicians.get(ev.get("mid", ""), {})
@@ -567,8 +607,14 @@ static func _resolve_random(ev: Dictionary, choice: Variant) -> Dictionary:
 			mm.happy = clampf(float(mm.happy) + float(c.happy), 0.0, 100.0)
 	if c.has("happy_member") and not m.is_empty():
 		m.happy = clampf(float(m.happy) + float(c.happy_member), 0.0, 100.0)
+	if c.has("others_happy"):
+		for mm in Game.members():
+			if mm.id != ev.get("mid", ""):
+				mm.happy = clampf(float(mm.happy) + float(c.others_happy), 0.0, 100.0)
+	if c.has("member_fame") and not m.is_empty():
+		m.fame = clampf(float(m.get("fame", 0.0)) + float(c.member_fame), 0.0, 100.0)
 	if c.has("listeners_flat"):
-		Game.public.add_listeners(float(c.listeners_flat), Public.SCOPE_REACH)
+		Game.public.add_listeners(float(c.listeners_flat), Public.SCOPE_LOCAL if c.get("local", false) else Public.SCOPE_REACH)
 	if c.has("listeners_pct") or c.has("fans_pct"):
 		shift_public(float(c.get("listeners_pct", 0.0)), float(c.get("fans_pct", 0.0)))
 	if c.has("fans_flat"):
@@ -578,7 +624,7 @@ static func _resolve_random(ev: Dictionary, choice: Variant) -> Dictionary:
 			mm.skill = maxf(1.0, float(mm.skill) - 0.5)
 	if c.get("downgrade", false) and not m.is_empty():
 		m.inst = maxi(0, int(m.inst) - 1)
-	var text: String = c.result.replace("{member}", mname) + tips_line
+	var text: String = event_text(c.result, ev, mname) + tips_line
 	return _res(e.title, text, e.icon)
 
 

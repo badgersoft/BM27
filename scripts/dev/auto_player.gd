@@ -118,8 +118,8 @@ func bot_event(ev: Dictionary) -> void:
 					if Game.value_of(m2) <= Game.funds:
 						Game.sign_musician(m2.id, Game.value_of(m2))
 						break
-		"random":
-			var e: Dictionary = MediaData.RANDOM_EVENTS[int(ev.idx)]
+		"random", "fame":
+			var e: Dictionary = Events.event_def(ev)
 			var c0: Dictionary = e.choices[0]
 			var ok: bool = not c0.has("cost_scale") or Events.random_cost(c0) <= Game.funds * 0.3
 			Game.resolve_event(ev, 0 if ok else 1)

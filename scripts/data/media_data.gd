@@ -250,7 +250,7 @@ const RANDOM_EVENTS := [
 	{"id": "viral", "title": "Clip Goes Viral", "icon": "trendUp", "min_fame": 8, "member": true,
 		"text": "A clip of {member} falling off the stage mid-solo (and still finishing it) is everywhere.",
 		"choices": [
-			{"label": "Lean into it, post more", "listeners_pct": 0.15, "happy_member": -3, "result": "Millions of views. {member} is now 'that one who fell over'."},
+			{"label": "Lean into it, post more", "listeners_pct": 0.15, "happy_member": -3, "member_fame": 4, "result": "Millions of views. {member} is now 'that one who fell over'."},
 			{"label": "Ask for it to be taken down", "happy_member": 4, "result": "{member} is relieved. The internet forgets, eventually."}]},
 	{"id": "advert", "title": "Advert Wants Your Song", "icon": "film", "min_fame": 20, "needs_release": true,
 		"text": "A building society wants to use your latest song in a TV advert about mortgages.",
@@ -294,6 +294,63 @@ const RANDOM_EVENTS := [
 			{"label": "Give everyone a week off", "happy": 4, "skill_loss": true, "result": "Rest, fluids and a solemn vow never to return to Dave's."},
 			{"label": "Rehearse through it", "happy": -6, "result": "Brave. Messy. Never speak of it again."}]},
 ]
+
+## Things famous band members get up to. "good" ones happen more to happy
+## members. Same choice keys as RANDOM_EVENTS, plus others_happy (everyone but
+## {member}), member_fame, and local (listeners_flat goes to your home area).
+const FAME_EVENTS := [
+	{"id": "ego", "title": "A Bigger Dressing Room", "icon": "crown", "min_fame": 55, "good": false,
+		"text": "{member} has started referring to themselves in the third person and wants their own dressing room, stocked with one specific brand of Icelandic sparkling water.",
+		"choices": [
+			{"label": "Give them what they want", "cost_scale": 150, "happy_member": 8, "others_happy": -4, "result": "{member} is delighted. The others are rolling their eyes so hard you can hear it."},
+			{"label": "Remind them it's a band", "happy_member": -10, "member_fame": -2, "result": "{member} sulked through two rehearsals, then quietly got over it."}]},
+	{"id": "tabloid", "title": "Tabloid Trouble", "icon": "news", "min_fame": 55, "good": false,
+		"text": "{member} was photographed leaving a nightclub at 4am wearing a traffic cone as a hat. It's on every front page.",
+		"choices": [
+			{"label": "Issue a grovelling apology", "listeners_pct": -0.01, "happy_member": -3, "result": "The apology was sincere, if a bit long. It blew over in a week."},
+			{"label": "Lean into it. It's rock'n'roll", "listeners_pct": 0.03, "fans_pct": -0.03, "member_fame": 3, "result": "Traffic cones are now a fashion item. Some long-time fans think you've lost the plot."}]},
+	{"id": "solo", "title": "Solo Album Rumours", "icon": "disc", "min_fame": 60, "good": false,
+		"text": "A magazine claims {member} is secretly recording a solo album. The rest of the band read it on the tour bus.",
+		"choices": [
+			{"label": "Let them do a side project", "happy_member": 10, "others_happy": -6, "member_fame": 4, "result": "{member} is thrilled. The others have gone very quiet."},
+			{"label": "Shut it down", "happy_member": -12, "others_happy": 3, "result": "The band's united again. {member} is not happy about it."}]},
+	{"id": "noshow", "title": "Missing In Action", "icon": "alert", "min_fame": 55, "good": false,
+		"text": "{member} didn't turn up to the band's big photoshoot. They were 'finding themselves' at a yoga retreat in Wales.",
+		"choices": [
+			{"label": "Pay to reschedule", "cost_scale": 100, "happy_member": -2, "result": "Reshot a week later. {member} looks very relaxed in every photo."},
+			{"label": "Shoot without them", "others_happy": -4, "listeners_pct": -0.01, "result": "The photos look odd with a gap in them. Fans have noticed."}]},
+	{"id": "feud", "title": "Public Feud", "icon": "flame", "min_fame": 65, "good": false,
+		"text": "{member} has started a very public argument online with someone from {rival}. It's about sandwiches, but also about everything.",
+		"choices": [
+			{"label": "Tell them to log off", "happy_member": -6, "result": "{member} logged off, muttering. Peace returns."},
+			{"label": "Let it run", "listeners_pct": 0.04, "fans_pct": -0.02, "others_happy": -3, "result": "Everyone's talking about it. Not all of it is nice."}]},
+	{"id": "rider", "title": "Rider Demands", "icon": "gift", "min_fame": 70, "good": false,
+		"text": "{member} has added 'a bowl of only blue sweets and one (1) live swan' to the band's backstage rider.",
+		"choices": [
+			{"label": "Get the swan", "cost_scale": 300, "happy_member": 6, "others_happy": -2, "result": "The swan bit the drummer. {member} says it was worth it."},
+			{"label": "No swan", "happy_member": -8, "result": "{member} has written a song called 'No Swan'. It's quite good, actually."}]},
+	{"id": "school", "title": "A New School", "icon": "heart", "min_fame": 55, "good": true,
+		"text": "{member} has used their fame to help open a new music school in {city}. The local press can't get enough of it.",
+		"choices": [
+			{"label": "Get the whole band down there", "listeners_flat": 40, "local": true, "fans_pct": 0.02, "happy": 3, "result": "The kids played you a song. It was terrible. Everyone cried."},
+			{"label": "Let {member} have their moment", "happy_member": 6, "member_fame": 2, "listeners_pct": 0.02, "result": "{member} cut the ribbon to a standing ovation."}]},
+	{"id": "cause", "title": "Speaking Up", "icon": "megaphone", "min_fame": 65, "good": true,
+		"text": "On live TV, {member} spoke up for the people of {country}, who hardly ever make the news. The clip has been shared millions of times.",
+		"choices": [
+			{"label": "Back them all the way", "listeners_pct": 0.05, "fans_pct": 0.02, "happy_member": 5, "others_happy": 2, "result": "Donations are pouring in, and people are looking up {country} on a map."},
+			{"label": "Keep the band out of politics", "happy_member": -6, "listeners_pct": 0.01, "result": "{member} feels let down, but the clip still did some good."}]},
+	{"id": "charity", "title": "Charity Single", "icon": "note", "min_fame": 60, "good": true,
+		"text": "{member} has been asked to front a charity single for the {city} children's hospital.",
+		"choices": [
+			{"label": "The whole band will play on it", "listeners_pct": 0.04, "fans_pct": 0.02, "happy": 2, "result": "It went top 40 and raised a fortune. Proper feel-good stuff."},
+			{"label": "{member} can do it solo", "happy_member": 4, "member_fame": 3, "listeners_pct": 0.02, "result": "{member}'s version is lovely. The band are a bit jealous."}]},
+	{"id": "ward", "title": "A Quiet Visit", "icon": "smile", "min_fame": 55, "good": true,
+		"text": "{member} quietly visited a children's ward in {city} with a guitar. A nurse's photo of it has gone viral.",
+		"choices": [
+			{"label": "Make it a regular thing", "happy": 2, "fans_pct": 0.02, "listeners_flat": 20, "local": true, "result": "The band now visit every month. The ward has a signed drum kit."},
+			{"label": "Keep it low-key", "happy_member": 3, "fans_pct": 0.01, "result": "{member} didn't want a fuss. People respect that."}]},
+]
+const CAUSE_COUNTRIES := ["Tuvalu", "Malawi", "Moldova", "Kiribati", "Burkina Faso", "Laos", "Vanuatu", "Eswatini", "Bhutan", "Suriname"]
 
 const DOC_TITLES := ["Loud & Unwashed: The Story of {band}", "{band}: Behind The Fuzz", "Some Kind of Badger: {band}",
 	"Don't Look Back In {city}: {band}", "{band}: The Van Years"]

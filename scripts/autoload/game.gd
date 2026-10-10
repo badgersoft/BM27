@@ -834,6 +834,8 @@ func load_game() -> bool:
 		var m: Dictionary = musicians[id]
 		for key in ["age", "tier", "ease", "inst", "joined", "cooldown", "last_complaint", "min_fame"]:
 			m[key] = int(m[key])
+		m.last_fame_event = int(m.get("last_fame_event", -99))
+		m.fame = float(m.get("fame", 0.0))
 	for key in gig_cities.keys():
 		gig_cities[key] = int(gig_cities[key])
 	for r in rivals:
