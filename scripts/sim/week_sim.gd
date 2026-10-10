@@ -342,10 +342,13 @@ static func play_gig(idx: int) -> Dictionary:
 		Game.flags.final_tour_gigs = int(Game.flags.final_tour_gigs) + 1
 	var bucket := clampi(int(crowd) - 1, 0, 4)
 	var bucket_c := clampi(int(critic) - 1, 0, 4)
+	var crowd_quote: String = MediaData.CROWD_QUOTES[bucket].pick_random()
+	if att < 30 and crowd >= 4.0:
+		crowd_quote = MediaData.SMALL_CROWD_QUOTES.pick_random().replace("{n2}", str(maxi(0, att - 1))).replace("{n}", str(att))
 	var g := {
 		"week": Game.week, "venue": idx, "venue_name": v.name, "tier": v.tier, "cap": cap, "attendance": att,
 		"true_fans": a_tf, "listeners": a_li, "walkins": a_walk, "fill": fill, "crowd": crowd, "critic": critic,
-		"crowd_quote": MediaData.CROWD_QUOTES[bucket].pick_random(), "critic_quote": MediaData.CRITIC_QUOTES[bucket_c].pick_random(),
+		"crowd_quote": crowd_quote, "critic_quote": MediaData.CRITIC_QUOTES[bucket_c].pick_random(),
 		"tickets": tickets, "bar": bar, "merch": merch, "hire": hire, "profit": tickets + bar + merch - hire,
 		"new_listeners": new_listeners, "new_fans": new_fans - lost_fans, "clash": clash, "final_tour": tour,
 		"colour": v.colour,

@@ -79,7 +79,7 @@ static func _gig(main: Control, ev: Dictionary, done: Callable) -> void:
 	var g: Dictionary = ev.gig
 	var v := UI.vbox(16)
 	var art := StageArt.new()
-	art.tex = StageArt.build(g.colour, float(g.fill), float(g.crowd), int(g.week) * 31 + int(g.venue))
+	art.tex = StageArt.build(g.colour, float(g.fill), float(g.crowd), int(g.week) * 31 + int(g.venue), int(g.attendance))
 	art.band = Game.band_name
 	art.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	v.add_child(art)

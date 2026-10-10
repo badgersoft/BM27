@@ -10,7 +10,8 @@ const W := 1000.0
 const H := 380.0
 
 
-static func build(colour: String, fill: float, rating: float, seed_val: int) -> Texture2D:
+## attendance: heads to draw for small crowds (about one head per person).
+static func build(colour: String, fill: float, rating: float, seed_val: int, attendance: int = 1000) -> Texture2D:
 	var rng := RandomNumberGenerator.new()
 	rng.seed = seed_val
 	var c := Color(colour)
@@ -48,12 +49,14 @@ static func build(colour: String, fill: float, rating: float, seed_val: int) -> 
 	s.append('<rect x="0" y="258" width="1000" height="26" fill="#1a1a20"/><rect x="0" y="258" width="1000" height="3" fill="#%s" opacity="0.8"/>' % hex)
 	# Crowd.
 	var hands := clampf((rating - 2.0) / 3.0, 0.0, 1.0)
+	# About 160 head slots; small crowds get one head per person.
+	var density := fill if attendance >= 160 else float(attendance) / 160.0
 	for row in 4:
 		var y := 300.0 + row * 22.0
 		var shade := Color("#08080b").lerp(Color("#17161c"), float(3 - row) / 3.0)
 		var x := -10.0 + rng.randf_range(0.0, 18.0)
 		while x < 1010.0:
-			if rng.randf() < fill * (0.6 + row * 0.15) + 0.04:
+			if rng.randf() < density * (0.75 + row * 0.1):
 				var r := rng.randf_range(10.0, 14.0)
 				var hy := y + rng.randf_range(-6.0, 6.0)
 				s.append('<circle cx="%d" cy="%d" r="%d" fill="#%s"/><rect x="%d" y="%d" width="%d" height="80" rx="8" fill="#%s"/>' % [x, hy, r, shade.to_html(false), x - r * 1.3, hy + r * 0.6, r * 2.6, shade.to_html(false)])

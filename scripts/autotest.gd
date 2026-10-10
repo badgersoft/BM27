@@ -18,6 +18,10 @@ static func maybe_run(main: Control) -> bool:
 			out_dir = a.get_slice("=", 1)
 	main_ref = main
 	DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path(out_dir))
+	# Keep Godot from importing the screenshots as project assets.
+	var gi := FileAccess.open(out_dir.path_join(".gdignore"), FileAccess.WRITE)
+	if gi:
+		gi.close()
 	if "--monkey" in args:
 		var steps := 1500
 		for a in args:
@@ -118,9 +122,21 @@ static func _run() -> void:
 	m.show_screen("naming")
 	await _shot("08_naming")
 	Game.form_band(Data.band_name_options(Game.genre)[0], Game.genre)
-	# Simulate a career so every page has something in it.
+	m.show_screen("hq", {"welcome": true})
+	await _shot("09_hq_welcome")
 	var bot := AutoPlayer.new()
-	for i in 150:
+	for i in 8:
+		bot.play_week()
+	m.show_screen("hq")
+	await _shot("09b_hq_early")
+	if not Game.gig_history.is_empty():
+		EventView.present(m, {"type": "gig", "gig": Game.gig_history[0]}, func(): pass)
+		await _shot("09c_gig_early")
+		m.close_all_modals()
+	m.current.open_page("gigs")
+	await _shot("09d_gigs_early")
+	# Simulate a career so every page has something in it.
+	for i in 142:
 		bot.play_week()
 	m.show_screen("hq")
 	await _shot("10_hq_home")

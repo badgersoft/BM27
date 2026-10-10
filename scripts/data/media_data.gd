@@ -131,6 +131,13 @@ const CRITIC_QUOTES := [
 	["Tight, punchy and properly entertaining.", "The best thing I've seen at this venue all year.", "A band starting to believe its own hype, and rightly so."],
 	["Transcendent. I wept into my notepad.", "Instant legends. Tell your grandchildren you were there.", "Five stars and I'd give six if the editor let me."],
 ]
+## For great gigs in front of a handful of people. {n} = attendance.
+const SMALL_CROWD_QUOTES := [
+	"All {n} of them went absolutely wild.",
+	"The front row (and only row) went mental.",
+	"Small but mighty: everyone danced, including the caretaker.",
+	"'Best night of my life,' says one of the {n}. The other {n2} agree.",
+]
 const CROWD_QUOTES := [
 	["'Can I have my money back?'", "'The raffle was better.'", "Someone threw a sausage roll."],
 	["'They were... loud?'", "Polite clapping. Some of it ironic.", "'My nan liked it.'"],
