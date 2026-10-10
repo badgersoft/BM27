@@ -229,6 +229,17 @@ static func _build() -> Theme:
 	paper.shadow_color = Color(0, 0, 0, 0.6)
 	paper.shadow_size = 28
 	t.set_stylebox("panel", "Paper", paper)
+	# Scroll hint: a short, soft shadow (flipped by Godot for the bottom edge).
+	var g := Gradient.new()
+	g.set_color(0, Color(0, 0, 0, 0.75))
+	g.set_color(1, Color(0, 0, 0, 0.0))
+	var gt := GradientTexture2D.new()
+	gt.gradient = g
+	gt.width = 4
+	gt.height = 36
+	gt.fill_from = Vector2(0, 0)
+	gt.fill_to = Vector2(0, 1)
+	t.set_icon("scroll_hint_vertical", "ScrollContainer", gt)
 
 	# ---- Inputs
 	t.set_font("font", "LineEdit", F_SEMI)

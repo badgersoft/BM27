@@ -56,7 +56,7 @@ func bot_week() -> void:
 		Game.set_focus("rehearse")
 		return
 	if Game.funds < 150:
-		Game.set_focus("busk")
+		Game.set_focus("odd_jobs" if Game.week % 2 == 0 else "busk")
 	elif Game.songcraft < 40 and Game.week % 3 == 0:
 		Game.set_focus("write")
 	elif Game.week % 3 == 1 and Game.funds > Game.promote_cost() * 6:

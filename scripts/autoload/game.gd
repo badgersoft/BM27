@@ -8,7 +8,7 @@ signal toast(text: String, kind: String)
 
 const SAVE_PATH := "user://bm27_save.json"
 const HOF_PATH := "user://bm27_halloffame.json"
-const SAVE_VERSION := 2
+const SAVE_VERSION := 3
 const ROLES := ["vocals", "guitar", "bass", "drums"]
 const FINAL_TOUR_MIN_WEEKS := 96
 const FINAL_TOUR_LENGTH := 24
@@ -451,7 +451,11 @@ func market(role: String) -> Array:
 			dreams.append(m)
 	affordable.sort_custom(func(a, b): return value_of(a) > value_of(b) if value_of(a) != value_of(b) else float(a.skill) > float(b.skill))
 	dreams.sort_custom(func(a, b): return value_of(a) < value_of(b))
-	var out: Array = affordable.slice(0, cap)
+	# At most two free hopefuls, so a tight budget still shows the best paid
+	# players it can stretch to.
+	var paid: Array = affordable.filter(func(m): return value_of(m) > 0)
+	var free: Array = affordable.filter(func(m): return value_of(m) == 0)
+	var out: Array = paid.slice(0, cap - mini(2, free.size())) + free.slice(0, 2)
 	# Make sure a free hopeful is always available so nobody gets stuck.
 	if not out.any(func(m): return value_of(m) == 0):
 		for id in musicians:
@@ -459,7 +463,7 @@ func market(role: String) -> Array:
 			if m.role == role and m.status == "free" and not bool(m.grudge) and value_of(m) == 0:
 				out.append(m)
 				break
-	return out + dreams.slice(0, 2)
+	return out + dreams.slice(0, 3)
 
 
 ## Can the player see this musician's exact potential?

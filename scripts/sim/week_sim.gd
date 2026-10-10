@@ -10,12 +10,25 @@ const FOCUS := {
 		"desc": "Build up the song bank. Better songs, better gigs and singles."},
 	"busk": {"name": "Busk", "icon": "hat", "train": 0.35,
 		"desc": "Play the high street for spare change and a few new listeners."},
+	"odd_jobs": {"name": "Odd Jobs", "icon": "handshake", "train": 0.25,
+		"desc": "Car washes, a cricket club do, a mate's wedding. Free to do, decent tips, a few new listeners."},
 	"promote": {"name": "Promote", "icon": "megaphone", "train": 0.3,
 		"desc": "Flyers, posters and socials. Costs money, wins listeners."},
 	"chill": {"name": "Chill Out", "icon": "moon", "train": 0.0,
 		"desc": "A week off. No progress, but everyone's mood lifts."},
 }
-const FOCUS_ORDER := ["rehearse", "write", "busk", "promote", "chill"]
+const FOCUS_ORDER := ["rehearse", "write", "busk", "odd_jobs", "promote", "chill"]
+## What the band gets up to on an Odd Jobs week: [line, tips multiplier, listeners multiplier].
+const ODD_JOBS := [
+	["washed cars for the {city} Rotary Club's charity car wash (and played a few songs while they dried)", 0.8, 0.8],
+	["played the cricket club's summer do in a marquee that smelt of grass and Pimm's", 1.0, 1.0],
+	["played your mate's wedding reception. The best man cried during the slow one", 1.3, 0.7],
+	["played background music at a garden centre's Christmas-in-July evening", 0.9, 0.6],
+	["did a set at a school summer fete, between the tombola and the dog show", 0.7, 1.3],
+	["played a pub quiz half-time slot at The Red Lion", 0.8, 1.0],
+	["played a retirement party at the bus depot. Big tippers, bus drivers", 1.2, 0.6],
+	["helped a removal firm for the day, then played a song for the customers", 1.1, 0.4],
+]
 
 
 static func run() -> void:
@@ -82,7 +95,7 @@ static func _pay_rent(rep: Dictionary) -> void:
 
 static func _apply_focus(rep: Dictionary) -> void:
 	var f := Game.focus
-	var fat_delta: float = {"rehearse": 1.0, "write": 0.5, "busk": 0.6, "promote": 0.3, "chill": -3.5}[f]
+	var fat_delta: float = {"rehearse": 1.0, "write": 0.5, "busk": 0.6, "odd_jobs": 0.7, "promote": 0.3, "chill": -3.5}[f]
 	Game.flags.fatigue = clampf(float(Game.flags.get("fatigue", 0.0)) + fat_delta, 0.0, 10.0)
 	var hustle := 1.4 if Game.has_perk("hustler") else 1.0
 	var ms := Game.members()
@@ -110,6 +123,17 @@ static func _apply_focus(rep: Dictionary) -> void:
 				line(rep, "A surprise busk caused a minor riot on the high street! %s in the hat, +%s listeners." % [U.money(cash), U.num(newl)], "good")
 			else:
 				line(rep, "Busking earned %s and %s new listeners." % [U.money(cash), U.num(newl)], "good")
+		"odd_jobs":
+			var job: Array = ODD_JOBS.pick_random()
+			# Bigger towns tip better; a band people have heard of tips better too.
+			var tips := (70.0 + avg_skill * 1.4) * float(job[1]) * randf_range(0.7, 1.35) * hustle * Settings.income_mult() \
+				* (ms.size() / 4.0) * Game.city_cost() * (1.0 + Game.fame() / 50.0)
+			Game.earn(tips)
+			var l2 := Game.listeners
+			Game.public.add_listeners(randf_range(1.0, 5.0) * float(job[2]) * hustle, Public.SCOPE_LOCAL)
+			var got := maxf(0.0, Game.listeners - l2)
+			var what := Game.cityize(str(job[0]))
+			line(rep, "Odd jobs: the band %s. %s in tips%s." % [what, U.money(tips), (", +%s listeners" % U.num(got)) if got >= 1.0 else ""], "good")
 		"promote":
 			var cost := Game.promote_cost()
 			if Game.funds < cost:
@@ -382,7 +406,8 @@ static func play_gig(idx: int) -> Dictionary:
 	# Money.
 	var mult := Settings.income_mult()
 	var tickets := att * float(v.ticket) * mult
-	var bar := att * float(v.bar) * 0.5 * mult
+	# The band's half of the bar: the prediction, give or take (-25% to +50%).
+	var bar := att * float(v.bar) * 0.5 * mult * randf_range(0.75, 1.5)
 	var merch := att * float(v.merch) * (1.5 if tour else 1.0) * mult
 	var hire := Game.venue_hire(idx)
 	Game.earn(tickets + bar + merch)

@@ -179,7 +179,7 @@ func _build_geography(rng: RandomNumberGenerator) -> void:
 			var cd: Dictionary = r.cities[li]
 			var count: int
 			if r.id == "lon":
-				count = RegionData.LONDON_POP
+				count = int(round(RegionData.LONDON_POP * rng.randf_range(0.9, 1.1)))
 			else:
 				count = int(round(RegionData.BASE_POP * float(cd.size) * rng.randf_range(0.96, 1.04)))
 			var c := {"name": cd.name, "region": ri, "local_idx": li, "start": start, "count": count,

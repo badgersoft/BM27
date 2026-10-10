@@ -14,7 +14,7 @@ const SECTIONS := [
 	["swap", "Genre", "You can change genre any time. People who don't like the new sound drift away (loyal ones less so); people who love it warm to you."],
 	["flag", "The Final Tour", "After two years together, with enough fame, you can announce a six-month Final Tour. Every casual fan wants a last look, so gate receipts and merch soar. Then you retire into the Hall of Fame."],
 	["alert", "Game Over", "If your following crashes from its peak and the band is miserable, they may decide to split up for good."],
-	["funds", "Money", "Rehearsal rent is weekly. Gig hire is paid when you book. You earn from tickets, half the bar, merch, record sales, interviews and the odd deal. You can't go into debt: if you can't pay the rent, it's back to Nan's shed."],
+	["funds", "Money", "Rehearsal rent is weekly. Gig hire is paid when you book. You earn from tickets, half the bar takings, merch, record sales, interviews and the odd deal. You can't go into debt: if you can't pay the rent, it's back to Nan's shed."],
 ]
 
 

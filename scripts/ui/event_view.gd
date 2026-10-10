@@ -198,7 +198,7 @@ static func _news(main: Control, ev: Dictionary, done: Callable) -> void:
 	var hl := _ink_label(head_text, 34 if lead else 38, UITheme.serif_black())
 	hl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	v.add_child(hl)
-	v.add_child(_ink_label(p.sub if not lead else "Our reporter was there. Fans were going wild. Rival managers were taking notes.", 18, UITheme.F_MED, true))
+	v.add_child(_ink_label(p.sub if not lead else str(p.get("lead_sub", "Our reporter was there. Fans were going wild.")), 18, UITheme.F_MED, true))
 	v.add_child(_ink_rule(1))
 	var cols := UI.hbox(22)
 	var c1 := UI.vbox(6)
@@ -214,7 +214,7 @@ static func _news(main: Control, ev: Dictionary, done: Callable) -> void:
 	var box_title := "IN BRIEF · LOCAL SCENE" if p.placement == "brief" else ("RISING STARS" if p.placement == "sidebar" else "THE CHARTS")
 	cv.add_child(_ink_label(box_title, 14, UITheme.F_COND_BOLD))
 	if lead:
-		cv.add_child(_ink_label("Everybody's talking about %s. You can't move for their T-shirts." % Game.band_name, 17, UITheme.F_MED, true))
+		cv.add_child(_ink_label(str(p.get("lead_box", "Everybody's talking about %s." % Game.band_name)), 17, UITheme.F_MED, true))
 	else:
 		cv.add_child(_ink_label(p.you, 17 if p.placement == "brief" else 19, UITheme.F_SEMI, true))
 	c2.add_child(cv)
@@ -506,6 +506,8 @@ static func _random(main: Control, ev: Dictionary, done: Callable) -> void:
 			dis = cost > Game.funds
 		if c.has("cash_scale"):
 			txt += "  ·  +%s" % U.money(roundf(float(c.cash_scale) * (1.0 + Game.fame() / 10.0) * Settings.income_mult()))
+		if c.has("tips"):
+			txt += "  ·  free, plus tips"
 		v.add_child(_choice_button(txt, "chevR", "Gold" if i == 0 else "", func(): _choose(main, m, ev, i, done), dis))
 	m = main.open_modal(v, 680)
 

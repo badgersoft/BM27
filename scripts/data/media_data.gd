@@ -109,6 +109,12 @@ const YOU_GOOD := [
 	{"text": "{band}'s demo spotted on a famous footballer's playlist.", "listeners": 0.10, "fans": 0.0},
 	{"text": "A busload of fans travelled 200 miles to see {band}. 'They're our band,' says Barbara, 64.", "listeners": 0.03, "fans": 0.03},
 	{"text": "{band} T-shirt spotted at a celebrity wedding.", "listeners": 0.07, "fans": 0.01},
+	{"text": "A {city} primary school choir covered a {band} song at assembly. Parents are humming it at the school gates.", "listeners": 0.05, "fans": 0.0},
+	{"text": "{member} of {band} helped push a stranger's car out of a ditch, then signed the bumper.", "listeners": 0.04, "fans": 0.01},
+	{"text": "A barber in {city} has started offering 'the {band}' haircut. Queues round the block.", "listeners": 0.06, "fans": 0.0},
+	{"text": "{band} played an impromptu set for a hospital ward. Nurses say it was 'the best medicine, after medicine'.", "listeners": 0.05, "fans": 0.02},
+	{"text": "Online music forum votes {band} 'most likely to be massive'. One user wrote 400 words on the bassline.", "listeners": 0.07, "fans": 0.01},
+	{"text": "A {city} taxi driver plays {band} to every passenger. 'Nobody's complained yet,' he says.", "listeners": 0.04, "fans": 0.0},
 ]
 const YOU_BAD := [
 	{"text": "{member} of {band} spotted buying a keytar. Fans 'deeply concerned'.", "listeners": -0.04, "fans": 0.0},
@@ -116,12 +122,74 @@ const YOU_BAD := [
 	{"text": "Online blogger calls {band} 'aggressively beige'. It's being shared a lot.", "listeners": -0.05, "fans": 0.0},
 	{"text": "{member} of {band} caught miming at a charity football match.", "listeners": -0.04, "fans": -0.01},
 	{"text": "{band} soundcheck noise complaint makes the front page of the Parish Pump.", "listeners": -0.02, "fans": 0.0},
+	{"text": "{member} of {band} told a radio host that cheese is 'basically a vegetable'. Phone-in chaos.", "listeners": -0.02, "fans": 0.0},
+	{"text": "{band} accused of 'borrowing' a chorus from a 1970s bin-lorry jingle.", "listeners": -0.03, "fans": 0.0},
+	{"text": "Fans grumble after {band} turn up 90 minutes late to a meet-and-greet. 'The van had a puncture,' claims {member}.", "listeners": -0.02, "fans": -0.01},
 ]
 const YOU_NEUTRAL := [
 	"{band} were seen rehearsing again. Neighbours report 'it's getting better, to be fair'.",
 	"{band} have been sticking up posters around town. Several are upside down.",
 	"Who are {band}? Our reporter asked around. Nobody's sure, but the name's catchy.",
 	"{band} reportedly working on 'new material'. {member} declined to say more, then said quite a lot more.",
+	"{member} of {band} was spotted at a {city} charity shop, buying a velvet jacket 'for the stage'.",
+	"{band} have been banned from a {city} chippy, but only on Tuesdays. Nobody will say why.",
+	"Spotted: {band} arguing about setlists in a supermarket car park. {member} won, apparently.",
+	"{band}'s van has a new paint job. Opinions are divided, mostly against.",
+	"Our reporter asked {member} of {band} for their biggest influence. The answer was 'my mum'. Aww.",
+	"{band} are rumoured to be learning a sea shanty 'for emergencies'.",
+]
+
+## When your band is the lead story: the standfirst under it, and the side box.
+const LEAD_SUBS := [
+	"Our reporter was there. Fans were going wild. Rival managers were taking notes.",
+	"The phones haven't stopped ringing at the office since.",
+	"We asked around town. Everybody had an opinion. Most of them were loud.",
+	"Full story, pictures and a very blurry photo of the drummer on pages 4 to 7.",
+	"Love them or hate them, you can't ignore them. We've tried.",
+	"Their manager declined to comment, but did ask for extra copies.",
+]
+const LEAD_BOX := [
+	"Everybody's talking about {band}. You can't move for their T-shirts.",
+	"Ticket touts report '{band}' is now the most searched name on their sites.",
+	"Our readers' poll: 61% love {band}, 12% hate them, 27% are 'just here for the crossword'.",
+	"{band} merch spotted on three continents and one very confused sheep.",
+	"Rumour has it {band} have been offered a waxwork. They've asked for it to be 'less shiny'.",
+	"Radio stations say requests for {band} have doubled since the spring.",
+]
+
+## Gig reviews in the paper, by how the critic rated it. {band}, {venue}, {city}, {quote}.
+const GIG_REVIEWS := {
+	"great": [
+		"{band} tore the roof off {venue} in {city}. Our critic: '{quote}'",
+		"REVIEW: {band} at {venue}. '{quote}' Get a ticket next time, if you can.",
+		"{city} is still ringing after {band} played {venue}. '{quote}'",
+		"Five-star scenes at {venue}: {band} delivered. '{quote}'",
+	],
+	"good": [
+		"{band} put on a solid show at {venue}, {city}. '{quote}'",
+		"REVIEW: {band} at {venue}. '{quote}' Worth a look.",
+		"{band} warmed up a {city} crowd at {venue}. Our critic says: '{quote}'",
+	],
+	"bad": [
+		"REVIEW: {band} at {venue}. '{quote}' Ouch.",
+		"{band} struggled at {venue} in {city}. Our critic was blunt: '{quote}'",
+		"Not their night: {band} misfired at {venue}. '{quote}'",
+	],
+}
+## Chart stories. {band}, {title}, {pos}.
+const CHART_NEW := [
+	"{band} crash into the national chart at number {pos} with '{title}'.",
+	"New entry! '{title}' by {band} lands at number {pos}.",
+	"'{title}' is everywhere: {band} enter the chart at {pos}.",
+]
+const CHART_UP := [
+	"'{title}' climbs to number {pos}. {band} are on the rise.",
+	"{band} keep climbing: '{title}' is up to number {pos}.",
+	"Radio can't get enough of '{title}'. {band} now sit at number {pos}.",
+]
+const CHART_DOWN := [
+	"'{title}' slips to number {pos}, but {band} are still in the chart.",
+	"{band}'s '{title}' is drifting down the chart, now at number {pos}.",
 ]
 
 const CRITIC_QUOTES := [
@@ -146,9 +214,10 @@ const CROWD_QUOTES := [
 	["Absolute scenes. People crowd-surfing off the bar.", "The roof came off. Nearly literally.", "'I'm getting their name tattooed.'"],
 ]
 
-## Random weekly events. Each has choices with effects (see Game._apply_random_choice).
+## Random weekly events. Each has choices with effects (see Events._resolve_random).
+## "bad" ones (mishaps) are rarer and never come within 3 weeks of each other.
 const RANDOM_EVENTS := [
-	{"id": "van", "title": "The Van Has Died", "icon": "bus", "min_fame": 0,
+	{"id": "van", "bad": true, "title": "The Van Has Died", "icon": "bus", "min_fame": 0,
 		"text": "Your battered transit van has made a noise like a dying walrus and stopped on the bypass.",
 		"choices": [
 			{"label": "Get it fixed", "cost_scale": 120, "happy": 2, "result": "The mechanic sucked his teeth, but it's running again."},
@@ -158,12 +227,12 @@ const RANDOM_EVENTS := [
 		"choices": [
 			{"label": "Buy a cake and candles", "cost_scale": 25, "happy_member": 10, "result": "{member} blew out the candles and got a bit emotional."},
 			{"label": "Forget, conveniently", "happy_member": -8, "result": "{member} noticed. {member} definitely noticed."}]},
-	{"id": "flood", "title": "Rehearsal Room Flooded", "icon": "alert", "min_fame": 0,
+	{"id": "flood", "bad": true, "title": "Rehearsal Room Flooded", "icon": "alert", "min_fame": 0,
 		"text": "A burst pipe has turned your rehearsal space into a paddling pool.",
 		"choices": [
 			{"label": "Pay for a pump and dry out", "cost_scale": 80, "result": "Mopped, dried and smelling only slightly of pond."},
 			{"label": "Rehearse in the puddle", "happy": -4, "skill_loss": true, "result": "Electricity and water. Nobody died, but nobody played well either."}]},
-	{"id": "amp", "title": "Amp Goes Bang", "icon": "amp", "min_fame": 0, "member": true,
+	{"id": "amp", "bad": true, "title": "Amp Goes Bang", "icon": "amp", "min_fame": 0, "member": true,
 		"text": "{member}'s amp just went bang mid-rehearsal. There was smoke. A lot of smoke.",
 		"choices": [
 			{"label": "Pay for a repair", "cost_scale": 60, "result": "Fixed. It sounds better than ever, apparently."},
@@ -188,12 +257,12 @@ const RANDOM_EVENTS := [
 		"choices": [
 			{"label": "Sell out (gladly)", "cash_scale": 900, "fans_pct": -0.03, "listeners_pct": 0.12, "result": "Ker-ching. Some true fans call you sell-outs, but your nan loves it."},
 			{"label": "Keep your integrity", "fans_pct": 0.02, "result": "Real fans respect it. Your bank manager doesn't."}]},
-	{"id": "noise", "title": "Noise Complaint", "icon": "alert", "min_fame": 0,
+	{"id": "noise", "bad": true, "title": "Noise Complaint", "icon": "alert", "min_fame": 0,
 		"text": "The neighbours have complained about the noise. There's a strongly-worded letter, in green ink.",
 		"choices": [
 			{"label": "Buy them flowers and earplugs", "cost_scale": 30, "result": "They're placated. One of them is now a fan."},
 			{"label": "Turn it up to eleven", "happy": 3, "fans_flat": -1, "result": "The band loved it. Mrs Higginbottom at number 12 did not."}]},
-	{"id": "stolen", "title": "Gear Stolen From The Van", "icon": "lock", "min_fame": 10, "member": true,
+	{"id": "stolen", "bad": true, "title": "Gear Stolen From The Van", "icon": "lock", "min_fame": 10, "member": true,
 		"text": "Someone broke into the van overnight and nicked {member}'s gear.",
 		"choices": [
 			{"label": "Replace it like-for-like", "cost_scale": 150, "result": "Replaced. {member} has written a song about it."},
@@ -203,7 +272,23 @@ const RANDOM_EVENTS := [
 		"choices": [
 			{"label": "Play for free", "fans_pct": 0.03, "listeners_pct": 0.06, "happy": 2, "result": "Feel-good vibes all round. Good karma, good press."},
 			{"label": "Ask for a fee", "cash_scale": 200, "fans_pct": -0.02, "result": "They paid up, but word got around."}]},
-	{"id": "food", "title": "Dodgy Kebab", "icon": "frown", "min_fame": 0,
+	# Favour gigs: free to play, paid in tips. Mostly a lifeline for skint new bands.
+	{"id": "wedding", "title": "A Mate's Wedding", "icon": "heart", "min_fame": 0, "max_fame": 35, "favour": true,
+		"text": "Your mate Gaz is getting married on Saturday and the wedding band has pulled out. He's begging. There's a tip jar.",
+		"choices": [
+			{"label": "Play the reception", "tips": 160, "listeners_flat": 12, "happy": 2, "result": "Three hours of covers, one of yours, and a conga line. The tip jar was stuffed."},
+			{"label": "Wish him luck", "result": "Gaz booked a DJ called 'DJ Dave'. Nobody will remember it."}]},
+	{"id": "cricket", "title": "Cricket Club Summer Do", "icon": "sparkle", "min_fame": 0, "max_fame": 30, "favour": true,
+		"text": "The {city} Cricket Club want live music for their summer barbecue. No fee, but they'll pass the hat round.",
+		"choices": [
+			{"label": "Play between the overs", "tips": 120, "listeners_flat": 10, "result": "Polite applause, then less polite dancing. The hat came back heavy."},
+			{"label": "Not really our crowd", "result": "They got a man with an accordion instead."}]},
+	{"id": "carwash", "title": "Charity Car Wash", "icon": "heart", "min_fame": 0, "max_fame": 25, "favour": true,
+		"text": "The local hospice is running a charity car wash on Sunday and asked if the band would play (and hold a sponge).",
+		"choices": [
+			{"label": "Sponges and songs", "tips": 90, "listeners_flat": 14, "happy": 3, "result": "Soaked, but happy. The organisers gave you a share of the tips and a lot of new friends."},
+			{"label": "Give it a miss", "result": "They raised a bit less without you, but they managed."}]},
+	{"id": "food", "bad": true, "title": "Dodgy Kebab", "icon": "frown", "min_fame": 0,
 		"text": "The whole band had kebabs from 'Dave's Late Night Meats'. Results are... unfolding.",
 		"choices": [
 			{"label": "Give everyone a week off", "happy": 4, "skill_loss": true, "result": "Rest, fluids and a solemn vow never to return to Dave's."},

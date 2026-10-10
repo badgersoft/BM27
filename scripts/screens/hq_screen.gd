@@ -45,6 +45,7 @@ func _ready() -> void:
 	page_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	page_scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	page_scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	UI.scroll_hints(page_scroll)
 	body.add_child(page_scroll)
 	# Floating NEXT WEEK button.
 	var nb := UI.vbox(2)
@@ -244,6 +245,9 @@ func _on_next() -> void:
 
 func _advance() -> void:
 	Game.advance_week()
+	# Each new week starts back at HQ, where the report and focus live.
+	if page_name != "home":
+		open_page("home")
 	process_events()
 
 
@@ -273,7 +277,7 @@ func _welcome() -> void:
 	var v := UI.vbox(16)
 	v.add_child(UI.label("THE BAND IS BORN", "Caps", UITheme.ACCENT))
 	v.add_child(UI.label(Game.band_name, "H1"))
-	v.add_child(UI.rich("Welcome to HQ. Each week, pick what the band focuses on, then press [b]NEXT WEEK[/b].\n\n[color=#ffc53d]•[/color] Book a gig from the [b]Gigs[/b] page every month.\n[color=#ffc53d]•[/color] Keep an eye on contentment on the [b]Band[/b] page.\n[color=#ffc53d]•[/color] Busk or promote early on to find your first listeners.\n\nYour mum has already bought a T-shirt. Let's get famous."))
+	v.add_child(UI.rich("Welcome to HQ. Each week, pick what the band focuses on, then press [b]NEXT WEEK[/b].\n\n[color=#ffc53d]•[/color] Book a gig from the [b]Gigs[/b] page every month.\n[color=#ffc53d]•[/color] Keep an eye on contentment on the [b]Band[/b] page.\n[color=#ffc53d]•[/color] Busk or promote early on to find your first listeners. Short of cash? Do [b]Odd Jobs[/b] for tips.\n\nYour mum has already bought a T-shirt. Let's get famous."))
 	var m: Control
 	var b := UI.button("LET'S GO", "play", "Primary", func(): main.close_modal(m))
 	v.add_child(b)

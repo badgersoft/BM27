@@ -8,7 +8,7 @@ extends RefCounted
 ## flavour: genre popularity multipliers for the local music scene.
 
 const BASE_POP := 1000
-const LONDON_POP := 3000
+const LONDON_POP := 3000   # give or take 10%, different each game
 
 const REGIONS := [
 	{"id": "nw", "name": "Northwest England", "short": "North West", "cities": [

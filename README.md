@@ -84,7 +84,7 @@ The audience is **~29,000 named people** across 9 regions, simulated individuall
 | Wales | Cardiff (~1,200), Swansea, Newport |
 | Ireland | Dublin (~1,200), Belfast, Cork |
 | Scotland | Glasgow (~1,200), Edinburgh, Aberdeen |
-| London | City of London (3,000) |
+| London | City of London (~3,000, ±10% each game) |
 
 Each person has a first name, gender, age, favourite and second-favourite genre,
 gig likelihood, **variance** (appetite for new music; younger people run higher),
@@ -113,7 +113,7 @@ gig likelihood, **variance** (appetite for new music; younger people run higher)
 
 ### Extras I added
 
-- **Weekly focus**: Rehearse / Write Songs / Busk / Promote / Chill Out. This gives every week a meaningful choice, and a way to earn your first few quid.
+- **Weekly focus**: Rehearse / Write Songs / Busk / Odd Jobs / Promote / Chill Out. Odd Jobs (car washes, cricket club dos, mates' weddings) pays tips when money is tight, and skint bands get offered the odd free favour gig. This gives every week a meaningful choice, and a way to earn your first few quid.
 - **Song bank**: writing builds it, gigs and singles use it, and recording uses it up.
 - **Fatigue**: grinding without rest wears the band down. Chill weeks matter.
 - **Manager perks**: each manager has one trick (Barry's *Silver Tongue*, Zed's *Gone Viral*, Bernie's *Gear Head*...). Poorer managers get stronger perks.
