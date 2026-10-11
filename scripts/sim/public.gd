@@ -123,12 +123,14 @@ func generate(seed_value: int) -> void:
 		var c: Dictionary = cities[ci]
 		var reg: Dictionary = regions[int(c.region)]
 		var flavour: Dictionary = RegionData.REGIONS[int(c.region)].cities[int(c.local_idx)].flavour
-		# Genre weights per age band for this city.
+		# Genre weights per age band for this city, with this game's drift.
+		var drift := _scene_drift(rng)
 		var weights: Array = []
 		for band in 4:
 			var w := PackedFloat32Array()
-			for g in genre_ids:
-				w.append(float(RegionData.GENRE_POP[g]) * float(flavour.get(g, 1.0)) * float(RegionData.GENRE_AGE[g][band]))
+			for gi2 in ng:
+				var g: String = genre_ids[gi2]
+				w.append(float(RegionData.GENRE_POP[g]) * float(flavour.get(g, 1.0)) * float(RegionData.GENRE_AGE[g][band]) * drift[gi2])
 			weights.append(w)
 		var hist := PackedInt32Array()
 		hist.resize(ng)
@@ -154,7 +156,7 @@ func generate(seed_value: int) -> void:
 		# The two biggest genres in town.
 		var order: Array = range(ng)
 		order.sort_custom(func(x, y): return hist[x] > hist[y])
-		c.top_genres = [genre_ids[order[0]], genre_ids[order[1]]]
+		c.top_genres = [genre_ids[order[0]], genre_ids[order[1]], genre_ids[order[2]]]
 		c.genre_share = {}
 		for gi in ng:
 			c.genre_share[genre_ids[gi]] = float(hist[gi]) / float(c.count)
@@ -179,7 +181,7 @@ func _build_geography(rng: RandomNumberGenerator) -> void:
 			var cd: Dictionary = r.cities[li]
 			var count: int
 			if r.id == "lon":
-				count = RegionData.LONDON_POP
+				count = int(round(RegionData.LONDON_POP * rng.randf_range(0.9, 1.1)))
 			else:
 				count = int(round(RegionData.BASE_POP * float(cd.size) * rng.randf_range(0.96, 1.04)))
 			var c := {"name": cd.name, "region": ri, "local_idx": li, "start": start, "count": count,
@@ -188,6 +190,16 @@ func _build_geography(rng: RandomNumberGenerator) -> void:
 			cities.append(c)
 			start += count
 		regions.append(reg)
+
+
+## Each game, every city's scene shifts a little: one genre is having a
+## moment, the rest wobble. So the same city won't sound the same every time.
+func _scene_drift(rng: RandomNumberGenerator) -> PackedFloat32Array:
+	var d := PackedFloat32Array()
+	for gi in genre_ids.size():
+		d.append(rng.randf_range(0.8, 1.25))
+	d[rng.randi_range(0, genre_ids.size() - 1)] *= 1.35
+	return d
 
 
 func _build_names() -> void:
@@ -341,29 +353,21 @@ func _taste_table(genre_id: String) -> PackedFloat32Array:
 	var n := genre_ids.size()
 	var t := PackedFloat32Array()
 	t.resize(n * n)
-	var electronic := _electronic_family()
-	var band_guitar := genre_family[gi] != electronic
 	for a in n:
 		for b in n:
-			var v := 0.07
+			# With only seven genres, plenty of people like yours a bit: it's
+			# the ones who really love it who become fans.
+			var v := 0.07   # guitar music fans give other guitar bands a fair hearing
 			if a == gi:
 				v = 1.0
 			elif b == gi:
-				v = 0.65
+				v = 0.45
 			elif genre_family[a] == genre_family[gi]:
-				v = 0.35
+				v = 0.2
 			elif genre_family[b] == genre_family[gi]:
-				v = 0.22
-			elif band_guitar and genre_family[a] != electronic:
-				# Guitar music fans give other guitar bands a fair hearing.
-				v = 0.15
+				v = 0.12
 			t[a * n + b] = v
 	return t
-
-
-func _electronic_family() -> int:
-	var i := genre_ids.find("edm")
-	return int(genre_family[i]) if i >= 0 else -1
 
 
 func taste(i: int) -> float:
@@ -437,36 +441,74 @@ func real_fans() -> int:
 	return count_at_least(FAN)
 
 
-# ================================================================ scaling
+# ======================================================== representation
 
-## Early on, every person is one real person. As the band spreads, each
-## person in the simulation comes to stand for a larger slice of the public,
-## so 29,000 people can still fill Wombley Stadium.
-func scale() -> float:
-	if base_city < 0:
-		return 1.0
-	var area := home_area()
-	var reg := 0.0
-	var n := 0
-	if stage >= 1:
-		for c in area:
-			if c != base_city:
-				reg += exposure[c]
-				n += 1
-		reg = reg / maxf(1.0, n)
-	var nat := 0.0
-	if stage >= 2:
-		var pop := 0.0
-		for c in cities.size():
-			if not c in area:
-				nat += exposure[c] * float(cities[c].count)
-				pop += float(cities[c].count)
-		nat = nat / maxf(1.0, pop)
-	return 1.0 + 4.0 * reg + 60.0 * pow(nat, 1.2)
+## The UK music public in real people. The simulated people are a sample.
+const TOTAL_REAL := 10000000
+
+## How many real people each simulated person stands for, by how many people
+## are in a group: [group size up to, each extra person counts as]. Only the
+## people inside a band get its weight (like tax bands), so totals never jump.
+const BANDS := [[100, 1.0], [500, 2.0], [1500, 5.0], [3000, 15.0], [6000, 40.0], [12000, 100.0], [1000000000, 300.0]]
 
 
-func _people_from_real(real: float) -> int:
-	var p := real / scale()
+## Real people represented by a group of n simulated people.
+static func represent(n: float) -> float:
+	var total := 0.0
+	var prev := 0.0
+	for b in BANDS:
+		var top := float(b[0])
+		if n <= top:
+			return total + (n - prev) * float(b[1])
+		total += (top - prev) * float(b[1])
+		prev = top
+	return total
+
+
+## What the next person added to a group of n would count as.
+static func marginal(n: float) -> float:
+	for b in BANDS:
+		if n < float(b[0]):
+			return float(b[1])
+	return float(BANDS[BANDS.size() - 1][1])
+
+
+## Real people at or above a tier. The curve is applied from the top down
+## ("super fans", "fans and up", "regulars and up"...), so promoting someone
+## from fan to super fan can never make your fan total drop.
+func real_at_least(t: int) -> float:
+	if t <= NOT_FAN:
+		return float(TOTAL_REAL)
+	return represent(count_at_least(t))
+
+
+## Real people in exactly this tier. "Not a fan" is everyone else.
+func real_tier(t: int) -> float:
+	if t == NOT_FAN:
+		return maxf(0.0, TOTAL_REAL - real_at_least(LISTENER))
+	if t == SUPER:
+		return real_at_least(SUPER)
+	return real_at_least(t) - real_at_least(t + 1)
+
+
+## Average real people per simulated person in a tier.
+func tier_weight(t: int) -> float:
+	var c := count(t)
+	if c <= 0:
+		return marginal(count_at_least(t))
+	return real_tier(t) / float(c)
+
+
+## Real people for a set of simulated people by tier (e.g. a gig crowd).
+func real_of(counts: Array) -> Dictionary:
+	var fans := float(counts[FAN]) * tier_weight(FAN) + float(counts[SUPER]) * tier_weight(SUPER)
+	var lis := float(counts[LISTENER]) * tier_weight(LISTENER) + float(counts[REGULAR]) * tier_weight(REGULAR)
+	return {"fans": fans, "listeners": lis, "super": float(counts[SUPER]) * tier_weight(SUPER), "total": fans + lis}
+
+
+## Simulated people needed to make `real` new people at a tier.
+func _people_from_real(real: float, at_tier: int = LISTENER) -> int:
+	var p := real / marginal(count_at_least(at_tier))
 	var n := int(floor(p))
 	if randf() < p - n:
 		n += 1
@@ -556,7 +598,7 @@ func _check_stage() -> Array:
 	var msgs: Array = []
 	var base_ct: Array = city_tier[base_city]
 	var base_fans: int = base_ct[FAN] + base_ct[SUPER]
-	if stage == 0 and (base_fans >= 25 or float(base_fans + base_ct[REGULAR]) / float(cities[base_city].count) >= 0.06):
+	if stage == 0 and (base_fans >= 25 or (base_fans + base_ct[REGULAR] * 0.5) / float(cities[base_city].count) >= 0.08):
 		unlock(1)
 		msgs.append("Word is spreading beyond %s: people across %s are starting to hear about you." % [city_name(base_city), region_name(region_of(base_city))])
 	elif stage == 1:
@@ -612,9 +654,11 @@ func _pick_city(cs: Array) -> int:
 
 
 ## Win over `real` new listeners (in real people). Returns people affected.
-func add_listeners(real: float, scope: int = SCOPE_REACH) -> int:
+## breadth: -1 (only people who love your genre) .. 0 (normal) .. +1 (catchy,
+## reaches people outside the genre).
+func add_listeners(real: float, scope: int = SCOPE_REACH, breadth: float = 0.0) -> int:
 	if real < 0.0:
-		lose(minf(1.0, -real / maxf(1.0, count_at_least(LISTENER) * scale())), LISTENER, 10.0)
+		lose(minf(1.0, -real / maxf(1.0, real_at_least(LISTENER))), LISTENER, 10.0)
 		return 0
 	_ensure_taste(_taste_genre if _taste_genre != "" else genre_ids[0])
 	var n := mini(_people_from_real(real), 3000)
@@ -626,7 +670,12 @@ func add_listeners(real: float, scope: int = SCOPE_REACH) -> int:
 			var i: int = int(cities[c].start) + randi() % int(cities[c].count)
 			if tier[i] >= REGULAR:
 				continue
-			if randf() < taste(i) * (0.4 + variance[i] * 0.006):
+			var t := taste(i)
+			if breadth > 0.0:
+				t = lerpf(t, 0.75, breadth * 0.5)
+			elif breadth < 0.0:
+				t = minf(1.0, pow(t, 1.0 - breadth * 1.5) * (1.0 - breadth * 0.3))
+			if randf() < t * (0.4 + variance[i] * 0.006):
 				fanatic[i] = maxf(fanatic[i] + randf_range(2.0, 5.0), randf_range(9.0, 14.0))
 				_update_tier(i, false)
 				added += 1
@@ -640,11 +689,39 @@ func deepen(real: float) -> void:
 	_ensure()
 	if engaged.is_empty():
 		return
-	var n := mini(_people_from_real(real), engaged.size())
+	var n := mini(_people_from_real(real, FAN), engaged.size())
 	for k in n:
 		var i: int = engaged[randi() % engaged.size()]
 		fanatic[i] = minf(100.0, fanatic[i] + randf_range(6.0, 14.0) * (0.4 + taste(i)))
 		_update_tier(i, false)
+	_dirty = true
+
+
+## How your existing listeners and fans take a new song's feel
+## (0 Poppy .. 4 Dial Up To 11, see Charts.FEELS). Genre purists hate a sell-out;
+## people who love the genre lap up the heavy stuff, and outsiders cool on it.
+func feel_reaction(feel: int) -> void:
+	_ensure()
+	for i in engaged:
+		var t := taste(i)
+		var tr := int(tier[i])
+		var d := 0.0
+		match feel:
+			0:
+				if tr >= FAN and randf() < 0.35:
+					d = -randf_range(2.0, 8.0) * t * (1.0 - loyalty[i] * 0.006)
+			1:
+				if tr >= FAN:
+					d = randf_range(-3.0, 4.0) * t
+			2:
+				d = randf_range(0.0, 3.0) * t
+			3:
+				d = randf_range(-1.0, 5.0) * (t - 0.3) * 1.5 + variance[i] * 0.02
+			4:
+				d = randf_range(0.0, 8.0) * (t - 0.35) * 1.6
+		if d != 0.0:
+			fanatic[i] = clampf(fanatic[i] + d * 0.4, 0.0, 100.0)
+			_update_tier(i, false)
 	_dirty = true
 
 
@@ -706,9 +783,11 @@ func preview_genre_change(new_genre: String) -> Vector2:
 
 # ================================================================== gigs
 
-## Who turns up to a gig in city `venue_city`. With expected=true returns
-## expected counts instead of rolling dice. Counts are in people.
-func gig_crowd(venue_city: int, big: bool, tour: bool, expected: bool = false) -> Dictionary:
+## Who turns up to a gig in city `venue_city`. travel: how much further
+## people will go for this size of show (1 = a pub gig, 3 = a stadium).
+## With expected=true returns expected counts instead of rolling dice.
+## Counts are in simulated people (see real_of()).
+func gig_crowd(venue_city: int, travel: float, tour: bool, expected: bool = false) -> Dictionary:
 	_ensure()
 	var area := home_area(venue_city)
 	var counts := [0.0, 0.0, 0.0, 0.0, 0.0]
@@ -722,8 +801,7 @@ func gig_crowd(venue_city: int, big: bool, tour: bool, expected: bool = false) -
 		var pc := int(city[i])
 		if pc != venue_city:
 			var d: float = TRAVEL_REGION[t] if pc in area else TRAVEL_FAR[t]
-			if big:
-				d = minf(1.0, d * 1.8)
+			d = minf(1.0, d * travel)
 			p *= d
 		p = minf(0.98, p * (0.4 + gig[i] * 0.009))
 		if expected:
@@ -740,6 +818,28 @@ func gig_crowd(venue_city: int, big: bool, tour: bool, expected: bool = false) -
 
 ## After the gig: the crowd's verdict changes how they feel, and the best
 ## walk-ins become listeners. Returns tier changes in people.
+## Chance a walk-in who isn't already into you starts listening.
+func walkin_chance(i: int, crowd: float) -> float:
+	var r := crowd / 5.0
+	return (0.25 + taste(i) * 0.75) * r * r
+
+
+## Average walk-in chance in a city, from a sample of locals (for showing
+## "new listeners" at a gig, where whole simulated people are too coarse).
+func walkin_rate(venue_city: int, crowd: float) -> float:
+	_ensure()
+	var c: Dictionary = cities[venue_city]
+	var total := 0.0
+	var n := 0
+	for k in 60:
+		var i: int = int(c.start) + randi() % int(c.count)
+		if tier[i] >= REGULAR:
+			continue
+		total += walkin_chance(i, crowd)
+		n += 1
+	return total / n if n > 0 else 0.0
+
+
 func apply_gig(people: PackedInt32Array, admit: float, crowd: float, venue_city: int, walk_people: int) -> Dictionary:
 	_ensure()
 	var before_l := count_at_least(LISTENER)
@@ -757,11 +857,16 @@ func apply_gig(people: PackedInt32Array, admit: float, crowd: float, venue_city:
 		_update_tier(i, false)
 	var c: Dictionary = cities[venue_city]
 	var r := crowd / 5.0
+	# Walk-ins who enjoyed it start listening (more likely if it's their sort
+	# of music and the gig was good).
 	for k in mini(walk_people, int(c.count)):
 		var i: int = int(c.start) + randi() % int(c.count)
 		if tier[i] >= REGULAR:
 			continue
-		fanatic[i] = fanatic[i] + taste(i) * r * r * randf_range(8.0, 24.0)
+		if randf() < walkin_chance(i, crowd):
+			fanatic[i] = maxf(fanatic[i] + randf_range(2.0, 6.0), randf_range(9.0, 14.0))
+		else:
+			fanatic[i] = fanatic[i] + taste(i) * r * randf_range(2.0, 6.0)
 		_update_tier(i, false)
 	pulse_city(venue_city, 0.03 * r)
 	_recount()

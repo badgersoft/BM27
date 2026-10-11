@@ -78,7 +78,7 @@ func _build_genres() -> void:
 	UI.clear(genre_grid)
 	var mg: Dictionary = Game.manager()
 	for g in Data.genres:
-		var fans := Game.members().filter(func(m): return m.genre == g.id).size()
+		var fans := Game.members().filter(func(m): return Game.genre_match(m, g.id) > 0).size()
 		var txt: String = g.name
 		var b := UI.button(txt, "star" if mg.genre == g.id else "note", "SegOn" if g.id == genre else "Seg", _set_genre.bind(g.id))
 		b.size_flags_horizontal = Control.SIZE_EXPAND_FILL

@@ -52,6 +52,13 @@ func _refresh() -> void:
 		tabs_box.add_child(b)
 	UI.clear(list)
 	var cur := Game.member(role)
+	# Budget guide, so the last seats aren't left with only free hopefuls.
+	var empty := 0
+	for r in Game.ROLES:
+		if Game.member(r).is_empty():
+			empty += 1
+	if empty > 1 and cur.is_empty():
+		list.add_child(UI.icon_label("funds", "%s left for %d empty seats: about %s each if you split it evenly. Spend it all on one star and the rest will be free hopefuls." % [U.money(Game.funds), empty, U.money(floorf(Game.funds / empty / 50.0) * 50.0)], UITheme.GOLD, "Small", 16, true))
 	for m in Game.market(role):
 		list.add_child(MusicianView.market_row(m, _offer.bind(m), cur))
 	next_btn.disabled = not Game.band_complete()

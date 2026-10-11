@@ -43,11 +43,12 @@ func _member_card(role: String) -> Control:
 	var tb := MusicianView.tier_badge(m)
 	if tb:
 		rr.add_child(tb)
+	rr.custom_minimum_size.y = 28
 	idv.add_child(rr)
 	idv.add_child(UI.label(m.name, "H3"))
 	var tags := UI.hbox(8)
 	tags.add_child(UI.label("Age %d" % int(m.age), "Small"))
-	tags.add_child(UI.genre_chip(m.genre))
+	tags.add_child(UI.genre_pair(m))
 	tags.add_child(UI.chip(Game.temperament_word(int(m.ease)), UITheme.MUTED))
 	idv.add_child(tags)
 	idv.add_child(UI.label("In the band %s%s" % [U.duration(Game.tenure(m)), " ★ founder" if bool(m.original) else ""], "Small"))
@@ -65,8 +66,21 @@ func _member_card(role: String) -> Control:
 	hb.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	bars.add_child(hb)
 	v.add_child(bars)
+	var fb := MusicianView.fame_block(m, 200)
+	fb.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	var frow := UI.hbox(20)
+	frow.add_child(fb)
+	var fame_note := UI.label(_fame_note(m), "Small", UITheme.MUTED, true)
+	fame_note.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	# Always two lines tall, so every card's gear box lines up.
+	fame_note.max_lines_visible = 2
+	fame_note.custom_minimum_size.y = fame_note.get_line_height() * 2 + 4
+	frow.add_child(fame_note)
+	v.add_child(frow)
 	var bio := UI.label(m.bio, "BodyMuted", null, true)
 	bio.add_theme_font_size_override("font_size", 15)
+	bio.max_lines_visible = 2
+	bio.custom_minimum_size.y = bio.get_line_height() * 2 + 4
 	v.add_child(bio)
 	var gear := UI.panel("CardFlat")
 	var gh := UI.hbox(10)
@@ -211,3 +225,12 @@ func _genre_dialog() -> void:
 	v.add_child(grid)
 	v.add_child(UI.button("Keep it as it is", "x", "Ghost", func(): main.close_modal(modal)))
 	modal = main.open_modal(v, 820, true)
+
+
+static func _fame_note(m: Dictionary) -> String:
+	var f := float(m.get("fame", 0.0))
+	if f >= 55.0:
+		return "Famous enough to cause trouble, or do some good."
+	if m.role == "vocals":
+		return "Singers catch the most spotlight."
+	return "Rises with the band's fame."

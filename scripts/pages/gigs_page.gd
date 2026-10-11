@@ -71,8 +71,10 @@ func _offer_card(idx: int, booked: bool) -> Control:
 	prof.add_child(UI.spacer())
 	prof.add_child(UI.label("%s to %s" % [U.signed_money(lo), U.signed_money(hi)], "Strong", UITheme.GOOD if lo >= 0 else (UITheme.GOLD if hi >= 0 else UITheme.BAD)))
 	col.add_child(prof)
-	var bd := "Ticket £%.2f · half the bar (£%.2f/head)%s" % [float(v.ticket), float(v.bar) * 0.5, (" · merch £%.2f/head" % float(v.merch)) if float(v.merch) > 0 else ""]
+	var bd := "Ticket £%.2f a head%s" % [float(v.ticket), (" · merch about £%.2f a head" % float(v.merch)) if float(v.merch) > 0 else ""]
 	col.add_child(UI.label(bd, "Small", null, true))
+	var bar_txt := "You'll also get half the bar takings from the night, usually around £%.2f a head (thirsty crowds spend more)." % (float(v.bar) * 0.5)
+	col.add_child(UI.icon_label("cash", bar_txt, UITheme.MUTED, "Small", 16, true))
 	if booked:
 		col.add_child(UI.icon_label("check", "BOOKED · plays at the end of week 4", UITheme.GOLD, "Caps", 18))
 	else:

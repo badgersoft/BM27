@@ -34,6 +34,9 @@ static func maybe_run(main: Control) -> bool:
 	var gi := FileAccess.open(out_dir.path_join(".gdignore"), FileAccess.WRITE)
 	if gi:
 		gi.close()
+	if "--gigshots" in args:
+		_gig_shots.call_deferred()
+		return true
 	if "--monkey" in args:
 		var steps := 1500
 		for a in args:
@@ -76,6 +79,45 @@ static func _monkey(steps: int) -> void:
 		if i % 250 == 0:
 			print("monkey step %d · screen %s · week %d · band '%s' · funds %s" % [i, m.current_name, Game.week, Game.band_name, U.money(Game.funds)])
 	print("monkey done: %d distinct buttons pressed" % pressed.size())
+	Game.delete_save()
+	m.get_tree().quit()
+
+
+## Plays a bot career and captures the gig-night screen at a small, a
+## middling and the biggest venue it reached.
+static func _gig_shots() -> void:
+	var m := main_ref
+	Game.delete_save()
+	var bot := AutoPlayer.new()
+	seed(4242)
+	Game.new_game()
+	bot.setup_band(0)
+	m.show_screen("hq")
+	var want := {0: {}, 7: {}, 14: {}}
+	var biggest: Dictionary = {}
+	for i in 420:
+		bot.play_week()
+		if Game.game_over:
+			break
+		for g in Game.gig_history:
+			var v := int(g.venue)
+			if want.has(v) and (want[v] as Dictionary).is_empty():
+				want[v] = g
+			if biggest.is_empty() or v > int(biggest.venue):
+				biggest = g
+		if not (want[14] as Dictionary).is_empty():
+			break
+	if (want[14] as Dictionary).is_empty():
+		want[14] = biggest
+	var names := {0: "gig_small", 7: "gig_medium", 14: "gig_large"}
+	for v in [0, 7, 14]:
+		var g: Dictionary = want[v]
+		if g.is_empty():
+			continue
+		print("%s: %s %d/%d crowd %.1f critic %.1f" % [names[v], g.venue_name, int(g.attendance), int(g.cap), float(g.crowd), float(g.critic)])
+		m.close_all_modals()
+		EventView.present(m, {"type": "gig", "gig": g}, func(): pass)
+		await _shot(names[v])
 	Game.delete_save()
 	m.get_tree().quit()
 
@@ -195,6 +237,13 @@ static func _run() -> void:
 	EventView.present(m, {"type": "name_release", "kind": "single", "quality": 50.0, "it": 1.0, "producer": "Puddle", "options": Data.song_title_options(Game.genre, [])}, func(): pass)
 	await _shot("25_name_release")
 	m.close_all_modals()
+	hq.open_page("charts")
+	load("res://scripts/pages/charts_page.gd").tab = "records"
+	hq.refresh()
+	await _shot("25b_records")
+	load("res://scripts/pages/charts_page.gd").tab = "nat"
+	hq.open_page("home")
+	m.close_all_modals()
 	var star := Events._star_offer()
 	if not star.is_empty():
 		EventView.present(m, star, func(): pass)
@@ -202,6 +251,9 @@ static func _run() -> void:
 		m.close_all_modals()
 	EventView.present(m, {"type": "random", "idx": 1, "mid": Game.members()[1].id, "rival": "The Wet Biscuits"}, func(): pass)
 	await _shot("27_random")
+	m.close_all_modals()
+	EventView.present(m, {"type": "fame", "idx": 7, "mid": Game.members()[0].id, "rival": "The Wet Biscuits", "country": "Tuvalu"}, func(): pass)
+	await _shot("27b_fame")
 	m.close_all_modals()
 	EventView.present(m, {"type": "label", "label": 3}, func(): pass)
 	await _shot("28_label")

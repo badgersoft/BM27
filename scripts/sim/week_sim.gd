@@ -7,15 +7,28 @@ const FOCUS := {
 	"rehearse": {"name": "Rehearse", "icon": "amp", "train": 1.0,
 		"desc": "Full rehearsal week. Best for skills. A bit of a grind."},
 	"write": {"name": "Write Songs", "icon": "pen", "train": 0.4,
-		"desc": "Build up the song bank. Better songs, better gigs and singles."},
+		"desc": "Write demo songs. Singles and albums are recorded from your best demos, and more good songs make a better live set."},
 	"busk": {"name": "Busk", "icon": "hat", "train": 0.35,
 		"desc": "Play the high street for spare change and a few new listeners."},
+	"odd_jobs": {"name": "Odd Jobs", "icon": "handshake", "train": 0.25,
+		"desc": "Car washes, a cricket club do, a mate's wedding. Free to do, decent tips, a few new listeners."},
 	"promote": {"name": "Promote", "icon": "megaphone", "train": 0.3,
 		"desc": "Flyers, posters and socials. Costs money, wins listeners."},
 	"chill": {"name": "Chill Out", "icon": "moon", "train": 0.0,
 		"desc": "A week off. No progress, but everyone's mood lifts."},
 }
-const FOCUS_ORDER := ["rehearse", "write", "busk", "promote", "chill"]
+const FOCUS_ORDER := ["rehearse", "write", "busk", "odd_jobs", "promote", "chill"]
+## What the band gets up to on an Odd Jobs week: [line, tips multiplier, listeners multiplier].
+const ODD_JOBS := [
+	["washed cars for the {city} Rotary Club's charity car wash (and played a few songs while they dried)", 0.8, 0.8],
+	["played the cricket club's summer do in a marquee that smelt of grass and Pimm's", 1.0, 1.0],
+	["played your mate's wedding reception. The best man cried during the slow one", 1.3, 0.7],
+	["played background music at a garden centre's Christmas-in-July evening", 0.9, 0.6],
+	["did a set at a school summer fete, between the tombola and the dog show", 0.7, 1.3],
+	["played a pub quiz half-time slot at The Red Lion", 0.8, 1.0],
+	["played a retirement party at the bus depot. Big tippers, bus drivers", 1.2, 0.6],
+	["helped a removal firm for the day, then played a song for the customers", 1.1, 0.4],
+]
 
 
 static func run() -> void:
@@ -29,6 +42,7 @@ static func run() -> void:
 	_organic_fans(rep)
 	Charts.weekly_update(true, rep)
 	_happiness(rep)
+	_member_fame(rep)
 	_birthdays(rep)
 	if U.date(Game.week).week_of_month == 4:
 		_resolve_month_gig(rep)
@@ -82,7 +96,7 @@ static func _pay_rent(rep: Dictionary) -> void:
 
 static func _apply_focus(rep: Dictionary) -> void:
 	var f := Game.focus
-	var fat_delta: float = {"rehearse": 1.0, "write": 0.5, "busk": 0.6, "promote": 0.3, "chill": -3.5}[f]
+	var fat_delta: float = {"rehearse": 1.0, "write": 0.5, "busk": 0.6, "odd_jobs": 0.7, "promote": 0.3, "chill": -3.5}[f]
 	Game.flags.fatigue = clampf(float(Game.flags.get("fatigue", 0.0)) + fat_delta, 0.0, 10.0)
 	var hustle := 1.4 if Game.has_perk("hustler") else 1.0
 	var ms := Game.members()
@@ -92,22 +106,44 @@ static func _apply_focus(rep: Dictionary) -> void:
 	avg_skill = avg_skill / maxf(1.0, ms.size())
 	match f:
 		"write":
+			# A new song takes a few writing weeks; better players and rooms are quicker.
 			var venue: Dictionary = Data.practice_venue(Game.practice_idx)
-			var gain: float = (0.6 + avg_skill / 100.0) * float(venue.train) * 1.3 * (1.0 - Game.songcraft / 115.0)
-			gain *= 0.5 + ms.size() / 8.0
-			Game.songcraft = clampf(Game.songcraft + gain, 0.0, 100.0)
-			line(rep, "Songwriting week: song bank +%.1f (now %d)." % [gain, int(Game.songcraft)], "good")
+			var train := float(venue.train)
+			Game.demo_progress += (0.25 + avg_skill / 120.0) * (0.6 + 0.4 * train) * (ms.size() / 4.0) * randf_range(0.8, 1.2)
+			var finished: Array = []
+			while Game.demo_progress >= 1.0:
+				Game.demo_progress -= 1.0
+				var q := clampf(avg_skill * 0.75 + train * 8.0 + randf_range(-12.0, 14.0), 5.0, 100.0)
+				Game.add_demo(q)
+				finished.append(q)
+			for q in finished:
+				line(rep, "Songwriting: the band finished a new demo, and it's %s. (%d demo songs)" % [Game.demo_word(q), Game.demos.size()], "good")
+			if finished.is_empty():
+				line(rep, "Songwriting: the next demo is %d%% written." % int(Game.demo_progress * 100.0), "good")
 		"busk":
 			var cash := (8.0 + avg_skill * 0.9) * randf_range(0.6, 1.4) * hustle * Settings.income_mult() * (ms.size() / 4.0)
 			var fame := Game.fame()
 			var newl := randf_range(3.0, 10.0) * hustle + Game.reach() * 0.002 * (1.0 + fame / 30.0)
 			Game.earn(cash)
-			newl = Game.public.add_listeners(newl, Public.SCOPE_LOCAL) * Game.public.scale()
+			var l0 := Game.listeners
+			Game.public.add_listeners(newl, Public.SCOPE_LOCAL)
+			newl = maxf(0.0, Game.listeners - l0)
 			Game.public.pulse(Public.SCOPE_LOCAL, 0.01)
 			if fame > 50.0:
 				line(rep, "A surprise busk caused a minor riot on the high street! %s in the hat, +%s listeners." % [U.money(cash), U.num(newl)], "good")
 			else:
 				line(rep, "Busking earned %s and %s new listeners." % [U.money(cash), U.num(newl)], "good")
+		"odd_jobs":
+			var job: Array = ODD_JOBS.pick_random()
+			# Bigger towns tip better; a band people have heard of tips better too.
+			var tips := (70.0 + avg_skill * 1.4) * float(job[1]) * randf_range(0.7, 1.35) * hustle * Settings.income_mult() \
+				* (ms.size() / 4.0) * Game.city_cost() * (1.0 + Game.fame() / 50.0)
+			Game.earn(tips)
+			var l2 := Game.listeners
+			Game.public.add_listeners(randf_range(1.0, 5.0) * float(job[2]) * hustle, Public.SCOPE_LOCAL)
+			var got := maxf(0.0, Game.listeners - l2)
+			var what := Game.cityize(str(job[0]))
+			line(rep, "Odd jobs: the band %s. %s in tips%s." % [what, U.money(tips), (", +%s listeners" % U.num(got)) if got >= 1.0 else ""], "good")
 		"promote":
 			var cost := Game.promote_cost()
 			if Game.funds < cost:
@@ -117,7 +153,9 @@ static func _apply_focus(rep: Dictionary) -> void:
 			Game.funds -= cost
 			Game.stats.spent = float(Game.stats.spent) + cost
 			var newl := (14.0 + Game.reach() * 0.012) * randf_range(0.6, 1.4) * Game.trend() * hustle
-			newl = Game.public.add_listeners(newl, Public.SCOPE_REACH) * Game.public.scale()
+			var l1 := Game.listeners
+			Game.public.add_listeners(newl, Public.SCOPE_REACH)
+			newl = maxf(0.0, Game.listeners - l1)
 			Game.public.pulse(Public.SCOPE_REACH, 0.015)
 			Game.buzz += 0.4
 			line(rep, "Promotion push (%s): +%s listeners." % [U.money(cost), U.num(newl)], "good")
@@ -169,6 +207,96 @@ static func _organic_fans(rep: Dictionary) -> void:
 
 # -------------------------------------------------------------- happiness
 
+# ----------------------------------------------------------- the critic
+
+## What a review does to you. For a small band any review is a mention in
+## the paper; once you're famous, people expect great things and a middling
+## review hurts.
+static func _review_impact(critic: float, fame: float) -> String:
+	var pub := Game.public
+	var expected := 2.0 + fame / 40.0
+	var weight := 0.2 + fame / 70.0
+	var diff := critic - expected
+	if fame < 25.0:
+		pub.add_listeners(critic * 2.0, Public.SCOPE_LOCAL)
+		if diff < 0.0:
+			return "Not a kind review, but it got your name in the paper."
+	if diff <= -0.5:
+		pub.lose(minf(0.1, -diff * 0.03 * weight), Public.LISTENER, 8.0)
+		pub.nudge(diff * 0.15 * weight)
+		if fame >= 25.0:
+			return "People expect more from you now. That review has put a few of them off."
+	elif diff >= 0.5:
+		pub.nudge(diff * 0.1 * weight)
+		pub.add_listeners(diff * 6.0 * (1.0 + fame / 10.0), Public.SCOPE_REACH)
+		return "A cracking review. People are talking."
+	return ""
+
+
+## The critic's one piece of advice: the band's weakest spot.
+static func _critic_advice(critic: float, fill: float) -> String:
+	if not Game.band_complete():
+		return "Come back when you've got a full band."
+	if critic >= 4.5:
+		return "Don't change a thing."
+	var ms := Game.members()
+	var worst: Dictionary = ms[0]
+	var avg := 0.0
+	for m in ms:
+		avg += Game.effective_skill(m)
+		if Game.effective_skill(m) < Game.effective_skill(worst):
+			worst = m
+	avg /= ms.size()
+	var tips: Array = []   # [weight, text]
+	var role_word: String = InstrumentData.ROLE_NAMES[worst.role].to_lower()
+	if Game.effective_skill(worst) < avg - 8.0:
+		tips.append([avg - Game.effective_skill(worst), "The %s was the weak link. More rehearsal, or a better %s, would lift the whole band." % [role_word, role_word]])
+	if Game.setlist_strength() < 35.0:
+		tips.append([35.0 - Game.setlist_strength(), "The songs aren't there yet. Write some stronger material."])
+	for m in ms:
+		if int(m.inst) < Data.expected_inst_tier(m.skill) - 1:
+			tips.append([10.0, "%s's gear sounded cheap. A better instrument would help." % m.name])
+			break
+	if float(Game.flags.get("fatigue", 0.0)) >= 6.0:
+		tips.append([float(Game.flags.fatigue) * 2.0, "They looked exhausted. Give them a week off."])
+	if Game.avg_happiness() < 45.0:
+		tips.append([45.0 - Game.avg_happiness(), "You can feel the tension on stage. Sort it out."])
+	if fill < 0.45:
+		tips.append([(0.45 - fill) * 40.0, "Half-empty rooms kill the atmosphere. Play somewhere smaller."])
+	if tips.is_empty():
+		return "Tighter, louder, more confident. It'll come with practice."
+	tips.sort_custom(func(a, b): return float(a[0]) > float(b[0]))
+	return tips[0][1]
+
+
+# ------------------------------------------------------------ member fame
+
+## How much of the spotlight each role tends to catch.
+const SPOTLIGHT := {"vocals": 1.2, "guitar": 0.95, "drums": 0.8, "bass": 0.7}
+
+
+## Each member's own fame drifts toward the band's, scaled by their role and a
+## personal "flair". Fame comes quickly and fades slowly.
+static func _member_fame(rep: Dictionary) -> void:
+	var bf := Game.fame()
+	for m in Game.members():
+		var cur := float(m.get("fame", 0.0))
+		var target := clampf(bf * float(SPOTLIGHT.get(m.role, 1.0)) * member_flair(m), 0.0, 100.0)
+		var nf := clampf(cur + (target - cur) * (0.05 if target > cur else 0.015), 0.0, 100.0)
+		m.fame = nf
+		for mark in [25, 50, 75, 90]:
+			if cur < mark and nf >= mark:
+				var word: String = {25: "getting recognised in the street", 50: "a name in their own right", 75: "properly famous", 90: "a household name"}[mark]
+				line(rep, "%s is %s." % [m.name, word], "good")
+				if mark >= 50:
+					Game.add_inbox("%s is famous" % m.name, "%s is now %s. Famous people do strange things. Keep them happy." % [m.name, word], "star", "info")
+
+
+## A fixed per-person multiplier (0.85 to 1.15): some people just shine.
+static func member_flair(m: Dictionary) -> float:
+	return 0.85 + float(absi(hash(str(m.id) + str(m.name))) % 31) / 100.0
+
+
 static func _happiness(rep: Dictionary) -> void:
 	var venue: Dictionary = Data.practice_venue(Game.practice_idx)
 	var fame := Game.fame()
@@ -176,8 +304,11 @@ static func _happiness(rep: Dictionary) -> void:
 	var complaint_raised := false
 	for m in Game.members():
 		var target := 55.0
-		var dist := Data.genre_distance(m.genre, Game.genre)
-		target += 8.0 if dist == 0 else (-2.0 if dist == 1 else -6.0)
+		# Playing a genre they love (first or second favourite) keeps them happy.
+		match Game.genre_match(m):
+			2: target += 8.0
+			1: target += 5.0
+			_: target += -2.0 if mini(Data.genre_distance(m.genre, Game.genre), Data.genre_distance(m.get("genre2", m.genre), Game.genre)) == 1 else -6.0
 		target += clampf((int(m.inst) - Data.expected_inst_tier(m.skill)) * 3.0, -9.0, 9.0)
 		target += float(venue.happy)
 		if Game.week - Game.last_gig_week <= 4:
@@ -244,6 +375,16 @@ static func is_big(tier: String) -> bool:
 	return tier in ["Large", "Arena", "Stadium"]
 
 
+## People travel further for bigger shows: nobody crosses the country for a
+## pub gig, plenty do for Wombley.
+static func travel_factor(tier: String) -> float:
+	match tier:
+		"Large": return 1.5
+		"Arena": return 2.2
+		"Stadium": return 3.0
+	return 1.0
+
+
 ## Bigger cities send more people wandering into gigs.
 static func city_walk_factor(c: int) -> float:
 	if c < 0:
@@ -273,10 +414,21 @@ static func generate_gig_offers() -> void:
 	Game.gig_month = U.date(Game.week).month_idx
 	Game.gig_booked = -1
 	Game.gig_skipped = false
-	var d := Game.draw()
+	# A venue books you if fans and listeners alone should fill its "draw".
 	var eligible: Array = []
+	var cache: Dictionary = {}
 	for i in Data.gigs.size():
-		if float(Data.gigs[i].draw) <= d:
+		var v: Dictionary = Data.gigs[i]
+		if float(v.draw) <= 0.0:
+			eligible.append(i)
+			continue
+		var c := Game.base_city
+		if RegionData.VENUE_CITY.has(v.id):
+			c = Game.public.find_city(RegionData.VENUE_CITY[v.id])
+		var key := "%d:%s" % [c, v.tier]
+		if not cache.has(key):
+			cache[key] = Game.expected_crowd(i, c)
+		if float(v.draw) <= float(cache[key]):
 			eligible.append(i)
 	var top: Array = eligible.slice(maxi(0, eligible.size() - 3))
 	var offers: Array = []
@@ -318,12 +470,16 @@ static func play_gig(idx: int) -> Dictionary:
 	var tour := Game.is_final_tour()
 	var city := Game.gig_city_of(idx)
 	var pub := Game.public
-	var s := pub.scale()
 	# Every fan and listener decides for themselves whether to come.
-	var roll := pub.gig_crowd(city, is_big(v.tier), tour)
+	var roll := pub.gig_crowd(city, travel_factor(v.tier), tour)
 	var cn: Array = roll.counts
-	var fans := (float(cn[Public.FAN]) + float(cn[Public.SUPER])) * s
-	var li := (float(cn[Public.LISTENER]) + float(cn[Public.REGULAR])) * s
+	var real: Dictionary = pub.real_of(cn)
+	var fans: float = real.fans
+	var li: float = real.listeners
+	var people := 0.0
+	for n in cn:
+		people += float(n)
+	var per_person: float = float(real.total) / maxf(1.0, people)
 	var w := walkin_range(v.tier)
 	var walk := float(cap) * randf_range(w.x, w.y) * Game.trend() * city_walk_factor(city) * (1.5 if tour else 1.0)
 	# Another band in your scene playing across town on the same night?
@@ -349,19 +505,31 @@ static func play_gig(idx: int) -> Dictionary:
 		perf *= 0.75
 	var expect := 18.0 + idx * 6.0
 	var crowd := clampf(snappedf(3.0 + (perf - expect) / 11.0, 0.5), 0.5, 5.0)
-	var critic := clampf(snappedf(2.6 + (perf - expect - 4.0) / 11.0 + randf_range(-0.7, 0.7), 0.5), 0.5, 5.0)
+	# Critics are harder to please than the crowd, by about a star.
+	var critic := clampf(snappedf(2.1 + (perf - expect - 6.0) / 10.0 + randf_range(-0.8, 0.6), 0.5), 0.5, 5.0)
 	# Money.
 	var mult := Settings.income_mult()
 	var tickets := att * float(v.ticket) * mult
-	var bar := att * float(v.bar) * 0.5 * mult
+	# The band's half of the bar: the prediction, give or take (-25% to +50%).
+	var bar := att * float(v.bar) * 0.5 * mult * randf_range(0.75, 1.5)
 	var merch := att * float(v.merch) * (1.5 if tour else 1.0) * mult
 	var hire := Game.venue_hire(idx)
 	Game.earn(tickets + bar + merch)
 	# The crowd's verdict changes how each of them feels; good walk-ins stick.
 	var r := crowd / 5.0
-	var conv := pub.apply_gig(roll.people, admit, crowd, city, int(round(a_walk / s * 0.6)))
-	var new_listeners := float(conv.listeners) * s
-	var new_fans := float(conv.fans) * s
+	var f0 := Game.true_fans
+	var engaged0 := pub.real_at_least(Public.LISTENER)
+	# Walk-ins in simulated people (each stands for several real ones by now),
+	# rounded at random so small numbers still count; apply_gig decides who sticks.
+	var walk_p := float(a_walk) / Public.marginal(pub.count_at_least(Public.LISTENER))
+	var walk_n := int(walk_p) + (1 if randf() < walk_p - int(walk_p) else 0)
+	pub.apply_gig(roll.people, admit, crowd, city, walk_n)
+	var review_note := _review_impact(critic, f)
+	# People new to the band: the walk-ins who got hooked. Shown as the
+	# expected number (whole simulated people are too coarse once each
+	# stands for hundreds), never less than what actually changed.
+	var new_listeners := maxf(roundf(a_walk * pub.walkin_rate(city, crowd)), pub.real_at_least(Public.LISTENER) - engaged0)
+	var new_fans := Game.true_fans - f0
 	if crowd >= 4.0:
 		pub.nudge(0.3)
 	elif crowd < 2.0:
@@ -370,6 +538,10 @@ static func play_gig(idx: int) -> Dictionary:
 	for m in Game.members():
 		m.happy = clampf(float(m.happy) + (crowd - 3.0) * 4.0, 0.0, 100.0)
 	Game.flags.fatigue = clampf(float(Game.flags.get("fatigue", 0.0)) + 1.0, 0.0, 10.0)
+	if crowd >= 4.5:
+		var singer := Game.member("vocals")
+		if not singer.is_empty():
+			singer.fame = minf(100.0, float(singer.get("fame", 0.0)) + 0.3 + idx * 0.05)
 	Game.last_gig_rating = crowd
 	Game.last_gig_week = Game.week
 	Game.stats.gigs = int(Game.stats.gigs) + 1
@@ -387,8 +559,9 @@ static func play_gig(idx: int) -> Dictionary:
 	var g := {
 		"week": Game.week, "venue": idx, "venue_name": v.name, "tier": v.tier, "cap": cap, "attendance": att,
 		"city": Game.city_name(city), "fans": a_tf, "listeners": a_li, "walkins": a_walk,
-		"super_fans": int(float(cn[Public.SUPER]) * s * admit), "travelled": int(float(roll.travelled) * s * admit), "fill": fill, "crowd": crowd, "critic": critic,
+		"super_fans": int(float(real.super) * admit), "travelled": int(float(roll.travelled) * per_person * admit), "fill": fill, "crowd": crowd, "critic": critic,
 		"crowd_quote": crowd_quote, "critic_quote": MediaData.CRITIC_QUOTES[bucket_c].pick_random(),
+		"critic_advice": _critic_advice(critic, fill), "review_note": review_note,
 		"tickets": tickets, "bar": bar, "merch": merch, "hire": hire, "profit": tickets + bar + merch - hire,
 		"new_listeners": new_listeners, "new_fans": new_fans, "clash": clash, "final_tour": tour,
 		"colour": v.colour,

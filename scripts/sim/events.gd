@@ -3,7 +3,7 @@ extends RefCounted
 ## Event generation (interviews, producers, labels, stars, documentaries,
 ## random mishaps, newspapers) and resolution of the player's choices.
 
-const DECISION_TYPES := ["interview", "producer", "label", "star", "doc", "film", "random", "complaint", "left", "breakup"]
+const DECISION_TYPES := ["interview", "producer", "label", "star", "doc", "film", "random", "fame", "complaint", "left", "breakup"]
 
 
 static func _decisions_queued() -> int:
@@ -72,8 +72,14 @@ static func roll_weekly(_rep: Dictionary) -> void:
 		var vname: String = Data.gig_venue(int(Game.stats.best_venue)).name
 		Game.queue.append({"type": "film", "fee": fee2, "venue": vname,
 			"title": MediaData.FILM_TITLES.pick_random().replace("{band}", Game.band_name).replace("{venue}", vname)})
+	# Famous members get up to things, good and bad.
+	if _decisions_queued() < 2 and wk - int(flags.get("last_fame_week", -99)) >= 4:
+		var ev3 := _fame_event()
+		if not ev3.is_empty():
+			flags.last_fame_week = wk
+			Game.queue.append(ev3)
 	# Random mishaps and opportunities.
-	if _decisions_queued() < 2 and randf() < 0.11:
+	if _decisions_queued() < 2 and randf() < 0.09:
 		var ev2 := _random_event()
 		if not ev2.is_empty():
 			Game.queue.append(ev2)
@@ -101,26 +107,82 @@ static func _star_offer() -> Dictionary:
 static func _random_event() -> Dictionary:
 	var f := Game.fame()
 	var has_rel := not Game.releases.is_empty()
+	# Mishaps count half as much in the draw and need a 3-week gap. Any one
+	# event can't come round again for 20 weeks (losing the same gear twice
+	# in a month isn't fun).
+	var bad_ok := Game.week - int(Game.flags.get("last_bad_event_week", -99)) > 3
+	var seen: Dictionary = Game.flags.get("event_seen", {})
 	var pool: Array = []
+	var weights: Array = []
 	for i in MediaData.RANDOM_EVENTS.size():
 		var e: Dictionary = MediaData.RANDOM_EVENTS[i]
-		if float(e.min_fame) > f:
+		var bad: bool = e.get("bad", false)
+		if bad and not bad_ok:
+			continue
+		if Game.week - int(seen.get(e.id, -99)) < 20:
+			continue
+		if float(e.min_fame) > f or float(e.get("max_fame", 999.0)) < f:
 			continue
 		if e.get("needs_release", false) and not has_rel:
 			continue
 		if e.get("member", false) and Game.members().is_empty():
 			continue
 		pool.append(i)
+		# Skint bands get offered favour gigs more often.
+		var w := 0.5 if bad else 1.0
+		if e.get("favour", false) and Game.funds < 300.0:
+			w = 2.5
+		weights.append(w)
 	if pool.is_empty():
 		return {}
-	var idx: int = pool.pick_random()
+	var rng := RandomNumberGenerator.new()
+	rng.randomize()
+	var idx: int = pool[rng.rand_weighted(PackedFloat32Array(weights))]
 	var e2: Dictionary = MediaData.RANDOM_EVENTS[idx]
+	if e2.get("bad", false):
+		Game.flags.last_bad_event_week = Game.week
+	seen[e2.id] = Game.week
+	Game.flags.event_seen = seen
 	var ev := {"type": "random", "idx": idx}
 	if e2.get("member", false):
 		ev.mid = Game.members().pick_random().id
 	var locals: Array = Game.rivals.filter(func(r): return bool(r.local))
 	ev.rival = locals.pick_random().name if not locals.is_empty() else "Some band"
 	return ev
+
+
+## The definition behind a "random" or "fame" event.
+static func event_def(ev: Dictionary) -> Dictionary:
+	return MediaData.FAME_EVENTS[int(ev.idx)] if ev.type == "fame" else MediaData.RANDOM_EVENTS[int(ev.idx)]
+
+
+static func _fame_event() -> Dictionary:
+	for m in Game.members():
+		var mf := float(m.get("fame", 0.0))
+		if mf < 55.0 or Game.week - int(m.get("last_fame_event", -99)) < 10:
+			continue
+		if randf() >= 0.015 + (mf - 55.0) / 45.0 * 0.04:
+			continue
+		# Happy members tend to use their fame for good.
+		var good := randf() < clampf(0.35 + (float(m.happy) - 50.0) / 150.0, 0.15, 0.7)
+		var pool: Array = []
+		for i in MediaData.FAME_EVENTS.size():
+			var e: Dictionary = MediaData.FAME_EVENTS[i]
+			if bool(e.good) == good and float(e.min_fame) <= mf:
+				pool.append(i)
+		if pool.is_empty():
+			continue
+		m.last_fame_event = Game.week
+		var locals: Array = Game.rivals.filter(func(r): return float(r.fame) >= 30.0)
+		return {"type": "fame", "idx": pool.pick_random(), "mid": m.id,
+			"rival": locals.pick_random().name if not locals.is_empty() else "another band",
+			"country": MediaData.CAUSE_COUNTRIES.pick_random()}
+	return {}
+
+
+## Fills an event's text placeholders.
+static func event_text(t: String, ev: Dictionary, member_name: String) -> String:
+	return Game.cityize(t.replace("{member}", member_name).replace("{rival}", str(ev.get("rival", ""))).replace("{country}", str(ev.get("country", ""))))
 
 
 static func queue_member_left(m: Dictionary) -> void:
@@ -140,6 +202,8 @@ static func queue_member_left(m: Dictionary) -> void:
 
 static func queue_news() -> void:
 	var f := Game.fame()
+	var flags := Game.flags
+	var recent: Array = flags.get("news_recent", [])
 	var megas: Array = Game.rivals.filter(func(r): return not bool(r.local))
 	megas.sort_custom(func(a, b): return float(a.fame) > float(b.fame))
 	megas = megas.slice(0, 18)
@@ -147,46 +211,120 @@ static func queue_news() -> void:
 	var b1: String = megas[0].name
 	var b2: String = megas[1].name
 	var b3: String = megas[2].name
-	var headline := _fill(MediaData.MEGA_HEADLINES.pick_random(), b1, b2)
-	var second := _fill(MediaData.MEGA_HEADLINES.pick_random(), b3, b1)
-	var sub: String = MediaData.MEGA_SUBS.pick_random().replace("{n}", str(randi_range(3, 40)))
-	# Your story.
+	var h1 := _fresh(MediaData.MEGA_HEADLINES, recent, "h")
+	var h2 := _fresh(MediaData.MEGA_HEADLINES, recent, "h")
+	var headline := _fill(MediaData.MEGA_HEADLINES[h1], b1, b2)
+	var second := _fill(MediaData.MEGA_HEADLINES[h2], b3, b1)
+	var sub: String = MediaData.MEGA_SUBS[_fresh(MediaData.MEGA_SUBS, recent, "s")].replace("{n}", str(randi_range(3, 40)))
+	# Your story: a fresh gig review first, then chart news, then gossip.
 	var mems := Game.members()
 	var member_name: String = mems.pick_random().name if not mems.is_empty() else "the manager"
 	var you := ""
 	var kind := "neutral"
 	var effect := ""
-	var charting: Array = Game.releases.filter(func(r): return r.status == "charting" and int(r.nat_pos) > 0)
-	if not charting.is_empty():
-		var rel: Dictionary = charting[0]
-		you = "%s's '%s' sits at number %d in the national chart." % [Game.band_name, rel.title, int(rel.nat_pos)]
-		kind = "good"
-	elif Game.week - Game.last_gig_week <= 2 and Game.last_gig_rating >= 4.0 and not Game.gig_history.is_empty():
-		you = "%s tore the roof off %s last week. 'Unmissable,' says our reviewer." % [Game.band_name, Game.gig_history[0].venue_name]
-		kind = "good"
-	else:
+	var review := _gig_review_story()
+	if not review.is_empty():
+		you = review.text
+		kind = review.kind
+	if you == "":
+		var ch := _chart_story()
+		if not ch.is_empty():
+			you = ch.text
+			kind = ch.kind
+	if you == "":
+		# Bad press with a real effect never lands within 6 weeks of the last.
+		var bad_ok := Game.week - int(flags.get("last_bad_news_week", -99)) >= 6
 		var r := randf()
 		if r < 0.35:
-			var s: Dictionary = MediaData.YOU_GOOD.pick_random()
+			var s: Dictionary = MediaData.YOU_GOOD[_fresh(MediaData.YOU_GOOD, recent, "g")]
 			you = _you_fill(s.text, member_name)
 			kind = "good"
-			effect = _apply_news_effect(float(s.listeners), float(s.fans))
-		elif r < 0.6:
-			var s2: Dictionary = MediaData.YOU_BAD.pick_random()
+			# Gentle: good press every fortnight would otherwise compound.
+			effect = _apply_news_effect(float(s.listeners) * 0.4, float(s.fans) * 0.4)
+		elif r < 0.55 and bad_ok:
+			var s2: Dictionary = MediaData.YOU_BAD[_fresh(MediaData.YOU_BAD, recent, "b")]
 			you = _you_fill(s2.text, member_name)
 			kind = "bad"
 			effect = _apply_news_effect(float(s2.listeners), float(s2.fans))
+			flags.last_bad_news_week = Game.week
 		else:
-			you = _you_fill(MediaData.YOU_NEUTRAL.pick_random(), member_name)
+			you = _you_fill(MediaData.YOU_NEUTRAL[_fresh(MediaData.YOU_NEUTRAL, recent, "n")], member_name)
 	var placement := "brief"
 	if f >= 55.0:
 		placement = "lead"
 	elif f >= 25.0:
 		placement = "sidebar"
-	Game.queue.append({"type": "news", "paper": {
+	var paper := {
 		"pub": MediaData.PUBLICATIONS.pick_random(), "date": U.date_label(Game.week), "headline": headline, "sub": sub,
 		"second": second, "you": you, "kind": kind, "placement": placement, "effect": effect,
-	}})
+		"lead_sub": MediaData.LEAD_SUBS[_fresh(MediaData.LEAD_SUBS, recent, "ls")],
+		"lead_box": str(MediaData.LEAD_BOX[_fresh(MediaData.LEAD_BOX, recent, "lb")]).replace("{band}", Game.band_name),
+	}
+	flags.news_recent = recent.slice(maxi(0, recent.size() - 30))
+	Game.queue.append({"type": "news", "paper": paper})
+
+
+## Picks an index from pool that hasn't appeared in the recent papers, and
+## remembers it. Falls back to anything once the pool is used up.
+static func _fresh(pool: Array, recent: Array, tag: String) -> int:
+	var opts: Array = []
+	for i in pool.size():
+		if not ("%s%d" % [tag, i]) in recent:
+			opts.append(i)
+	if opts.is_empty():
+		for i in range(recent.size() - 1, -1, -1):
+			if str(recent[i]).begins_with(tag):
+				recent.remove_at(i)
+		opts = range(pool.size())
+	var pick: int = opts.pick_random()
+	recent.append("%s%d" % [tag, pick])
+	return pick
+
+
+## Reviews the latest gig once, in the first paper after it.
+static func _gig_review_story() -> Dictionary:
+	if Game.gig_history.is_empty():
+		return {}
+	var g: Dictionary = Game.gig_history[0]
+	if Game.week - int(g.week) > 3 or int(Game.flags.get("news_gig_reviewed", -99)) == int(g.week):
+		return {}
+	Game.flags.news_gig_reviewed = int(g.week)
+	var critic := float(g.critic)
+	var key := "great" if critic >= 4.0 else ("good" if critic >= 2.5 else "bad")
+	# Small, unremarkable gigs don't always make the paper.
+	if key == "good" and randf() < 0.5:
+		return {}
+	var t: String = MediaData.GIG_REVIEWS[key].pick_random()
+	t = t.replace("{band}", Game.band_name).replace("{venue}", g.venue_name).replace("{city}", str(g.get("city", Game.city_name()))) \
+		.replace("{quote}", str(g.critic_quote).trim_suffix("."))
+	return {"text": t, "kind": "good" if key == "great" else ("neutral" if key == "good" else "bad")}
+
+
+## Chart news only when something has changed since the last report.
+static func _chart_story() -> Dictionary:
+	var charting: Array = Game.releases.filter(func(r): return r.status == "charting" and int(r.nat_pos) > 0)
+	if charting.is_empty():
+		return {}
+	charting.sort_custom(func(a, b): return int(a.nat_pos) < int(b.nat_pos))
+	var rel: Dictionary = charting[0]
+	var reported: Dictionary = Game.flags.get("news_chart", {})
+	var pos := int(rel.nat_pos)
+	var prev := int(reported.get(rel.title, 0))
+	var pool: Array = []
+	var kind := "good"
+	if prev == 0:
+		pool = MediaData.CHART_NEW
+	elif pos <= prev - 3 or (pos <= 10 and pos < prev):
+		pool = MediaData.CHART_UP
+	elif pos >= prev + 8:
+		pool = MediaData.CHART_DOWN
+		kind = "neutral"
+	else:
+		return {}
+	reported[rel.title] = pos
+	Game.flags.news_chart = reported
+	var t: String = pool.pick_random()
+	return {"text": t.replace("{band}", Game.band_name).replace("{title}", rel.title).replace("{pos}", str(pos)), "kind": kind}
 
 
 static func _fill(t: String, b: String, b2: String) -> String:
@@ -241,7 +379,7 @@ static func resolve(ev: Dictionary, choice: Variant) -> Dictionary:
 		"name_release": return _resolve_name(ev, choice)
 		"label": return _resolve_label(ev, choice)
 		"star": return _resolve_star(ev, choice)
-		"random": return _resolve_random(ev, choice)
+		"random", "fame": return _resolve_random(ev, choice)
 		"doc", "film": return _resolve_media_deal(ev, choice)
 		"breakup": return _resolve_breakup(choice)
 		"end":
@@ -360,13 +498,14 @@ static func _resolve_producer(ev: Dictionary, choice: Variant) -> Dictionary:
 	if not Game.spend(float(p.fee), "the producer"):
 		return _res("Can't afford it", "%s wants paying up front. You haven't got it." % p.name, "funds", "bad")
 	var actual := clampf(float(p.quality) + randf_range(-12.0, 8.0), 5.0, 100.0)
-	var q := 0.45 * minf(100.0, Game.band_score()) + 0.25 * actual + 0.30 * Game.songcraft
+	# The single is the band's best demo, polished in the studio.
+	var song := float(Game.take_demos(1)[0]) if not Game.demos.is_empty() else 10.0
+	var q := 0.45 * minf(100.0, Game.band_score()) + 0.25 * actual + 0.30 * song
 	if Game.has_perk("crate"):
 		q *= 1.08
 	var it := randf_range(0.6, 1.45)
 	if randf() < 0.05:
 		it = randf_range(1.6, 1.9)
-	Game.songcraft *= 0.7
 	Game.queue.push_front({"type": "name_release", "kind": "single", "quality": q, "it": it, "producer": p.name,
 		"producer_day": actual - float(p.quality), "options": Data.song_title_options(Game.genre, Game.used_titles)})
 	return {}
@@ -378,13 +517,18 @@ static func _resolve_label(ev: Dictionary, choice: Variant) -> Dictionary:
 		return _res("Deal declined", "You told %s you're keeping your options open." % l.name, "x")
 	var adv := float(l.advance) * Settings.income_mult()
 	Game.earn(adv)
-	var q := 0.4 * minf(100.0, Game.band_score()) + 0.3 * float(l.quality) + 0.3 * Game.songcraft
+	# An album takes the best ten demos; any missing are written in a hurry.
+	var songs := Game.take_demos(10)
+	var sum := 0.0
+	for sq in songs:
+		sum += float(sq)
+	sum += (10 - songs.size()) * 12.0
+	var q := 0.4 * minf(100.0, Game.band_score()) + 0.3 * float(l.quality) + 0.3 * sum / 10.0
 	if Game.has_perk("crate"):
 		q *= 1.08
 	var it := randf_range(0.7, 1.4)
 	if randf() < 0.05:
 		it = randf_range(1.6, 1.9)
-	Game.songcraft *= 0.6
 	Game.flags.top20_since_album = 0
 	Game.queue.push_front({"type": "name_release", "kind": "album", "quality": q, "it": it, "producer": l.name,
 		"options": Data.album_title_options(Game.genre, Game.used_titles)})
@@ -396,7 +540,8 @@ static func _resolve_name(ev: Dictionary, title: Variant) -> Dictionary:
 	var t := str(title).strip_edges()
 	if t == "":
 		t = ev.options[0]
-	var data := {"kind": ev.kind, "title": t, "quality": ev.quality, "it": ev.it, "producer": ev.producer}
+	var data := {"kind": ev.kind, "title": t, "quality": ev.quality, "it": ev.it, "producer": ev.producer,
+		"feel": clampi(int(ev.get("feel", 2)), 0, Charts.FEELS.size() - 1)}
 	Game.used_titles.append(t)
 	if ev.kind == "album":
 		data.week = Game.week + 3
@@ -404,20 +549,38 @@ static func _resolve_name(ev: Dictionary, title: Variant) -> Dictionary:
 		Game.add_inbox("Into the studio", "Recording of '%s' has begun with %s. Out in 3 weeks." % [t, ev.producer], "disc")
 		return _res("Recording '%s'" % t, "The band have decamped to the studio with %s. The album will be released in 3 weeks." % ev.producer, "disc", "good")
 	var rel := release_now(data)
-	var pos_txt := "It's entered the national chart at number %d!" % int(rel.nat_pos) if int(rel.nat_pos) > 0 else "It hasn't cracked the national Top 40 yet."
+	var pos_txt := "It's entered the national chart at number %d!" % int(rel.nat_pos) if int(rel.nat_pos) > 0 else "It hasn't cracked the national Top 20 yet."
 	if int(rel.local_pos) > 0:
 		pos_txt += " Local chart: number %d." % int(rel.local_pos)
 	return _res("'%s' is out!" % t, "Produced by %s.\n\n%s" % [ev.producer, pos_txt], "vinyl", "good")
+
+
+## Per feel (Charts.FEELS order): chart power, new listeners, and who they are
+## (breadth: +1 catchy and broad .. -1 genre lovers only).
+const FEEL_POWER := [1.2, 1.1, 1.0, 0.95, 1.0]
+const FEEL_LISTENERS := [1.6, 1.3, 1.0, 0.8, 0.7]
+const FEEL_BREADTH := [1.0, 0.5, 0.0, -0.5, -1.0]
 
 
 static func release_now(data: Dictionary) -> Dictionary:
 	var f := Game.fame()
 	var q := float(data.quality)
 	var it := float(data.it)
+	var feel := int(data.get("feel", 2))
+	var power: float = FEEL_POWER[feel]
+	if feel >= 3:
+		# Genre-heavy songs live or die by how the genre's doing.
+		power *= sqrt(Game.trend())
+	if feel == 4:
+		# Love it or hate it.
+		power *= randf_range(0.5, 1.6)
 	var rel := {
 		"id": Game.uid("r"), "kind": data.kind, "title": data.title, "week": Game.week, "quality": q, "it": it,
-		"producer": data.producer, "nat_base": q * national_reach(f) * it * (0.85 + 0.15 * Game.trend()),
-		"local_base": q * (0.5 + f / 40.0) * it, "nat_pos": 0, "local_pos": 0, "last_nat": 0, "last_local": 0,
+		"producer": data.producer, "nat_base": q * national_reach(f) * it * (0.85 + 0.15 * Game.trend()) * power,
+		"local_base": q * (0.5 + f / 40.0) * it * power, "feel": feel,
+		# Now and then a catchy song comes roaring back weeks later.
+		"sleeper": randi_range(7, 12) if feel == 0 and randf() < 0.06 else -1,
+		"nat_pos": 0, "local_pos": 0, "last_nat": 0, "last_local": 0,
 		"peak_nat": 0, "peak_local": 0, "weeks_on": 0, "sales": 0, "total_sales": 0, "revenue": 0.0,
 		"status": "charting", "out_week": -1, "top20": false, "genre": Game.genre,
 	}
@@ -426,7 +589,8 @@ static func release_now(data: Dictionary) -> Dictionary:
 	if data.kind == "album":
 		Game.flags.albums = int(Game.flags.albums) + 1
 	Charts.add_release(rel)
-	Game.public.add_listeners(10.0 + q * 0.5, Public.SCOPE_REACH)
+	Game.public.add_listeners((10.0 + q * 0.5) * FEEL_LISTENERS[feel], Public.SCOPE_REACH, FEEL_BREADTH[feel])
+	Game.public.feel_reaction(feel)
 	Game.public.nudge(0.3)
 	Game.buzz += 2.0
 	Game.add_inbox("New %s: '%s'" % [data.kind, data.title], "Out now, produced by %s." % data.producer, "vinyl", "good")
@@ -455,7 +619,7 @@ static func _resolve_star(ev: Dictionary, choice: Variant) -> Dictionary:
 
 
 static func _resolve_random(ev: Dictionary, choice: Variant) -> Dictionary:
-	var e: Dictionary = MediaData.RANDOM_EVENTS[int(ev.idx)]
+	var e: Dictionary = event_def(ev)
 	var c: Dictionary = e.choices[int(choice)]
 	var f := Game.fame()
 	var m: Dictionary = Game.musicians.get(ev.get("mid", ""), {})
@@ -464,6 +628,11 @@ static func _resolve_random(ev: Dictionary, choice: Variant) -> Dictionary:
 		var cost := random_cost(c)
 		if not Game.spend(cost, "that"):
 			return _res("Can't afford it", "You'll have to take the other option.", "funds", "bad")
+	var tips_line := ""
+	if c.has("tips"):
+		var tips := roundf(float(c.tips) * randf_range(0.7, 1.4) * Game.city_cost() * Settings.income_mult())
+		Game.earn(tips)
+		tips_line = " (%s in tips)" % U.money(tips)
 	if c.has("cash_scale"):
 		Game.earn(roundf(float(c.cash_scale) * (1.0 + f / 10.0) * Settings.income_mult()))
 	if c.has("happy"):
@@ -471,8 +640,14 @@ static func _resolve_random(ev: Dictionary, choice: Variant) -> Dictionary:
 			mm.happy = clampf(float(mm.happy) + float(c.happy), 0.0, 100.0)
 	if c.has("happy_member") and not m.is_empty():
 		m.happy = clampf(float(m.happy) + float(c.happy_member), 0.0, 100.0)
+	if c.has("others_happy"):
+		for mm in Game.members():
+			if mm.id != ev.get("mid", ""):
+				mm.happy = clampf(float(mm.happy) + float(c.others_happy), 0.0, 100.0)
+	if c.has("member_fame") and not m.is_empty():
+		m.fame = clampf(float(m.get("fame", 0.0)) + float(c.member_fame), 0.0, 100.0)
 	if c.has("listeners_flat"):
-		Game.public.add_listeners(float(c.listeners_flat), Public.SCOPE_REACH)
+		Game.public.add_listeners(float(c.listeners_flat), Public.SCOPE_LOCAL if c.get("local", false) else Public.SCOPE_REACH)
 	if c.has("listeners_pct") or c.has("fans_pct"):
 		shift_public(float(c.get("listeners_pct", 0.0)), float(c.get("fans_pct", 0.0)))
 	if c.has("fans_flat"):
@@ -482,8 +657,26 @@ static func _resolve_random(ev: Dictionary, choice: Variant) -> Dictionary:
 			mm.skill = maxf(1.0, float(mm.skill) - 0.5)
 	if c.get("downgrade", false) and not m.is_empty():
 		m.inst = maxi(0, int(m.inst) - 1)
-	var text: String = c.result.replace("{member}", mname)
+	var text: String = event_text(c.result, ev, mname) + tips_line
+	if c.get("battle", false):
+		text = _battle_of_the_bands(ev)
 	return _res(e.title, text, e.icon)
+
+
+static func _battle_of_the_bands(ev: Dictionary) -> String:
+	var rival := str(ev.get("rival", "the favourites"))
+	var p := clampf(0.3 + (Game.band_score() - 40.0) / 80.0, 0.15, 0.85)
+	if randf() < p:
+		var prize := roundf(randf_range(150.0, 300.0) * Game.city_cost() * Settings.income_mult() / 10.0) * 10.0
+		Game.earn(prize)
+		Game.public.add_listeners(40.0, Public.SCOPE_LOCAL)
+		for mm in Game.members():
+			mm.happy = clampf(float(mm.happy) + 5.0, 0.0, 100.0)
+		return "You WON! The judges loved you, %s sulked in the car park, and the prize was %s." % [rival, U.money(prize)]
+	Game.public.add_listeners(12.0, Public.SCOPE_LOCAL)
+	for mm in Game.members():
+		mm.happy = clampf(float(mm.happy) - 3.0, 0.0, 100.0)
+	return "%s won. You came a respectable second, and a few people in the crowd asked for your name." % rival
 
 
 static func random_cost(c: Dictionary) -> float:

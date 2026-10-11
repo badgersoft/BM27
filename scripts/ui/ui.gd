@@ -131,6 +131,29 @@ static func chip(text: String, color: Color, filled: bool = false, icon: String 
 	return p
 
 
+## A musician's two favourite genres. If one matches the band's genre it
+## goes first, highlighted with a heart.
+static func genre_pair(m: Dictionary) -> HBoxContainer:
+	var h := hbox(6)
+	var first: String = m.genre
+	var second: String = m.get("genre2", "")
+	var match_idx := Game.genre_match(m) if Game.genre != "" else 0
+	var order := [first, second]
+	if match_idx == 1:
+		order = [second, first]
+	for i in order.size():
+		var g: String = order[i]
+		if g == "":
+			continue
+		var hit := match_idx > 0 and i == 0
+		var c := chip(Data.genre_name(g), Data.genre_color(g), hit, "heart" if hit else "note")
+		if not hit:
+			c.modulate.a = 1.0 if i == 0 else 0.75
+		c.tooltip_text = ("Loves %s: plays better and is happier in a %s band." % [Data.genre_name(g), Data.genre_name(g)]) if hit else ("Favourite genre" if g == first else "Second favourite genre")
+		h.add_child(c)
+	return h
+
+
 static func genre_chip(genre_id: String, filled: bool = false) -> PanelContainer:
 	return chip(Data.genre_name(genre_id), Data.genre_color(genre_id), filled, "note")
 
@@ -169,10 +192,14 @@ static func stat(icon: String, caption: String, value: String, color: Color = UI
 	return h
 
 
-static func icon_label(icon: String, text: String, color: Color = UITheme.MUTED, variation: String = "Small", isize: float = 16.0) -> HBoxContainer:
+static func icon_label(icon: String, text: String, color: Color = UITheme.MUTED, variation: String = "Small", isize: float = 16.0, wrap := false) -> HBoxContainer:
 	var h := hbox(6)
-	h.add_child(Icons.make(icon, isize, color))
-	var l := label(text, variation, color)
+	var ic := Icons.make(icon, isize, color)
+	h.add_child(ic)
+	var l := label(text, variation, color, wrap)
+	if wrap:
+		l.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		ic.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
 	h.add_child(l)
 	return h
 
@@ -218,7 +245,15 @@ static func scroller(child: Control) -> ScrollContainer:
 	s.follow_focus = true
 	child.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	s.add_child(child)
+	UI.scroll_hints(s)
 	return s
+
+
+## A soft shadow at the top/bottom edge while there's more to scroll to
+## (Godot's built-in scroll hints, styled by UITheme).
+static func scroll_hints(s: ScrollContainer) -> void:
+	s.scroll_hint_mode = ScrollContainer.SCROLL_HINT_MODE_ALL
+	s.tile_scroll_hint = true
 
 
 static func full_rect(c: Control) -> Control:
