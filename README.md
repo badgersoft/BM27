@@ -147,6 +147,7 @@ scripts/
   pages/                 HQ pages: home, band, talent, gigs, rehearsal, charts, releases, scene, inbox
   dev/auto_player.gd     A bot manager used by the tests
 tests/                   Headless balance test + portrait sheet (excluded from exports)
+tools/version.sh         Version numbers (see "Versions"); git hooks in .githooks/
 ```
 
 ### Design and performance notes
@@ -158,6 +159,30 @@ tests/                   Headless balance test + portrait sheet (excluded from e
   is kind to phone batteries.
 - UI is plain Godot `Control` containers with one code-built `Theme` (`ui_theme.gd`),
   so restyling is done in one place.
+
+## Versions
+
+Band Manager 27 uses **MAJOR.MINOR.PATCH** version numbers, shown on the main menu
+(and in the pause menu). See `CHANGELOG.md` for what changed in each one.
+
+| Part | When it goes up | Example |
+|---|---|---|
+| MAJOR | Big milestones (1.0.0 = the first full release) | 0.9.4 → 1.0.0 |
+| MINOR | New features or content | 0.8.3 → 0.9.0 |
+| PATCH | Fixes and tweaks: **every commit** gets one automatically | 0.8.0 → 0.8.1 |
+
+```bash
+tools/version.sh install-hooks            # once per clone: turns on the automatic patch bump
+tools/version.sh                          # show the current version
+tools/version.sh bump minor "Tour buses"  # a feature release (adds a CHANGELOG heading)
+tools/version.sh bump major "Release"     # a milestone
+```
+
+With the hooks on, each commit's patch number goes up by one (unless the commit already
+changes the version), the commit message gets a `Version: x.y.z` line, and feature releases
+(x.y.0) get a git tag (push them with `git push --follow-tags`). The number is written into
+`project.godot` and every export preset (Android's version code is MAJOR×10000 + MINOR×100 + PATCH).
+Commits made from a tool that skips git hooks simply keep the previous number until the next one.
 
 ## Testing
 

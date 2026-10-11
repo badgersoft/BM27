@@ -55,6 +55,12 @@ static func _trim(s: String) -> String:
 
 
 ## £950 · £9,850 · £12.4k · £1.25M
+## The game's version (MAJOR.MINOR.PATCH), from project.godot. See
+## tools/version.sh for how it's bumped.
+static func version() -> String:
+	return str(ProjectSettings.get_setting("application/config/version", "0.0.0"))
+
+
 static func money(v: float) -> String:
 	var neg := v < 0.0
 	v = absf(v)

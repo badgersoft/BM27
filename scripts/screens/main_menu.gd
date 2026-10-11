@@ -53,6 +53,11 @@ func _ready() -> void:
 	title_row.add_child(holder)
 	left.add_child(title_row)
 	left.add_child(UI.label("From Nan's garden shed to Wombley Stadium. Manage the band. Survive the egos. Get famous.", "BodyMuted", null, true))
+	# The version, right under the logo so it's the first thing you see.
+	var ver := UI.chip("VERSION %s" % U.version(), UITheme.GOLD, false, "flag")
+	ver.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
+	ver.tooltip_text = "Band Manager 27 v%s" % U.version()
+	left.add_child(ver)
 
 	# Buttons.
 	var right := UI.vbox(12)
@@ -77,7 +82,7 @@ func _ready() -> void:
 			b.alignment = HORIZONTAL_ALIGNMENT_LEFT
 	go_btn.alignment = HORIZONTAL_ALIGNMENT_CENTER
 
-	var foot := UI.label("v%s  ·  © Badger-soft  ·  No badgers were harmed in the making of this game." % ProjectSettings.get_setting("application/config/version", "1.0"), "Small", UITheme.DIM)
+	var foot := UI.label("v%s  ·  © Badger-soft  ·  No badgers were harmed in the making of this game." % U.version(), "Small", UITheme.DIM)
 	foot.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_LEFT)
 	foot.offset_left = 72
 	foot.offset_top = -34

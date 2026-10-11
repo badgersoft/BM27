@@ -1,0 +1,22 @@
+#!/bin/sh
+# Every commit gets a new version number. If this commit doesn't already
+# change it (say, a minor or major bump), the patch number goes up by one.
+# Skip with:  BM27_NO_BUMP=1 git commit ...
+[ -n "$BM27_NO_BUMP" ] && exit 0
+# Merges and the very first commit are left alone.
+git rev-parse -q --verify MERGE_HEAD >/dev/null && exit 0
+git rev-parse -q --verify HEAD >/dev/null || exit 0
+
+vpat='s/^config\/version="\(.*\)"/\1/p'
+head_v=$(git show HEAD:project.godot 2>/dev/null | sed -n "$vpat")
+index_v=$(git show :project.godot 2>/dev/null | sed -n "$vpat")
+[ "$head_v" != "$index_v" ] && exit 0
+
+new_v=$(tools/version.sh bump patch)
+# Put the new number into the commit without staging anything else that
+# happens to be edited in those files.
+for f in project.godot export_presets.cfg; do
+	blob=$(git show ":$f" | tools/version.sh apply "$new_v" | git hash-object -w --stdin)
+	git update-index --cacheinfo 100644 "$blob" "$f"
+done
+echo "Version $new_v"

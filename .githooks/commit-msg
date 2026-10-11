@@ -1,0 +1,5 @@
+#!/bin/sh
+# Stamp the commit message with its version, as a "Version: x.y.z" trailer.
+v=$(git show :project.godot 2>/dev/null | sed -n 's/^config\/version="\(.*\)"/\1/p')
+[ -n "$v" ] && git interpret-trailers --in-place --if-exists replace --trailer "Version: $v" "$1"
+exit 0
