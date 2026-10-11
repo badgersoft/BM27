@@ -345,8 +345,14 @@ static func _crowd(s: PackedStringArray, rng: RandomNumberGenerator, st: int, fi
 					s.append('<path d="M%d %d L%d %d" stroke="#%s" stroke-width="6" stroke-linecap="round"/>' % [x + r * 0.7, hy + r, ax2, top, _hex(shade)])
 					var held := rng.randf()
 					if held < 0.22:
-						# A pint held aloft.
-						s.append('<rect x="%d" y="%d" width="9" height="13" rx="1.5" fill="#d9952b"/><rect x="%d" y="%d" width="9" height="4" rx="1.5" fill="#f4ecd8"/>' % [ax2 - 4, top - 14, ax2 - 4, top - 16])
+						# A pint held aloft: a tapered glass you can half see through,
+						# darker than the phone screens so it doesn't glow.
+						var gx := ax2
+						var gy := top - 2.0
+						s.append('<polygon points="%.1f,%.1f %.1f,%.1f %.1f,%.1f %.1f,%.1f" fill="#8a5a1c" opacity="0.55"/>' % [gx - 4.0, gy, gx + 4.0, gy, gx + 5.0, gy - 11.0, gx - 5.0, gy - 11.0])
+						s.append('<polygon points="%.1f,%.1f %.1f,%.1f %.1f,%.1f %.1f,%.1f" fill="#cfc6b0" opacity="0.5"/>' % [gx - 5.0, gy - 11.0, gx + 5.0, gy - 11.0, gx + 5.2, gy - 14.0, gx - 5.2, gy - 14.0])
+						s.append('<polygon points="%.1f,%.1f %.1f,%.1f %.1f,%.1f %.1f,%.1f" fill="none" stroke="#9aa0a8" stroke-width="1" opacity="0.4"/>' % [gx - 4.0, gy, gx + 4.0, gy, gx + 5.2, gy - 14.0, gx - 5.2, gy - 14.0])
+						s.append('<path d="M%.1f %.1f L%.1f %.1f" stroke="#ffffff" stroke-width="1" opacity="0.18"/>' % [gx - 2.5, gy - 2.0, gx - 3.2, gy - 12.0])
 					elif st >= ARENA and held < 0.5:
 						s.append('<rect x="%d" y="%d" width="5" height="8" rx="1" fill="#e6f0ff" opacity="0.9"/>' % [ax2 - 2, top - 8])
 			x += rng.randf_range(20.0, 30.0)
