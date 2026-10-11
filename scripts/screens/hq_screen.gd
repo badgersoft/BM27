@@ -287,6 +287,7 @@ func _welcome() -> void:
 func _pause_menu() -> void:
 	var v := UI.vbox(12)
 	v.add_child(UI.label("PAUSED", "H2"))
+	v.add_child(UI.label("Band Manager 27 · v%s" % U.version(), "Small", UITheme.DIM))
 	var m: Control
 	v.add_child(UI.button("RESUME", "play", "Gold", func(): main.close_modal(m)))
 	v.add_child(UI.button("SAVE GAME", "save", "", func():

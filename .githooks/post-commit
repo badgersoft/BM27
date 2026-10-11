@@ -1,0 +1,8 @@
+#!/bin/sh
+# Feature releases (x.y.0) get a git tag, e.g. v0.8.0. Push them with:
+#   git push --follow-tags
+v=$(sed -n 's/^config\/version="\(.*\)"/\1/p' project.godot)
+case "$v" in
+	*.0) git tag -a "v$v" -m "Band Manager 27 v$v" 2>/dev/null || true ;;
+esac
+exit 0
