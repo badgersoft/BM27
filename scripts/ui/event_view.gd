@@ -78,9 +78,7 @@ static func _choice_button(text: String, icon: String, variation: String, cb: Ca
 static func _gig(main: Control, ev: Dictionary, done: Callable) -> void:
 	var g: Dictionary = ev.gig
 	var v := UI.vbox(16)
-	var art := StageArt.new()
-	art.tex = StageArt.build(g.colour, float(g.fill), float(g.crowd), int(g.week) * 31 + int(g.venue), int(g.attendance))
-	art.band = Game.band_name
+	var art := StageArt.for_gig(g)
 	art.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	v.add_child(art)
 	var head := UI.hbox(16)
@@ -129,8 +127,14 @@ static func _gig(main: Control, ev: Dictionary, done: Callable) -> void:
 	money[1].add_child(grid)
 	v.add_child(money[0])
 	var conv := UI.hbox(24)
-	conv.add_child(UI.stat("headphones", "New listeners", U.signed_num(float(g.new_listeners)), UITheme.INFO))
-	conv.add_child(UI.stat("heart", "New fans", U.signed_num(float(g.new_fans)), UITheme.ACCENT))
+	# Two different things: people who'd never listened before, and existing
+	# listeners the gig turned into fans.
+	var nl := UI.stat("headphones", "New listeners", U.signed_num(float(g.new_listeners)), UITheme.INFO)
+	nl.tooltip_text = "People who hadn't been listening to you before tonight."
+	conv.add_child(nl)
+	var bf := UI.stat("heart", "Became fans" if float(g.new_fans) >= 0.0 else "Fans lost", U.signed_num(float(g.new_fans)), UITheme.ACCENT)
+	bf.tooltip_text = "Listeners who left as proper fans."
+	conv.add_child(bf)
 	conv.add_child(UI.spacer())
 	var m: Control
 	var b := UI.button("CONTINUE", "chevR", "Primary", func():

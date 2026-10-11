@@ -518,10 +518,17 @@ static func play_gig(idx: int) -> Dictionary:
 	# The crowd's verdict changes how each of them feels; good walk-ins stick.
 	var r := crowd / 5.0
 	var f0 := Game.true_fans
-	var l0 := Game.listeners + f0
-	pub.apply_gig(roll.people, admit, crowd, city, int(round(a_walk * 0.6 / Public.marginal(pub.count_at_least(Public.LISTENER)))))
+	var engaged0 := pub.real_at_least(Public.LISTENER)
+	# Walk-ins in simulated people (each stands for several real ones by now),
+	# rounded at random so small numbers still count; apply_gig decides who sticks.
+	var walk_p := float(a_walk) / Public.marginal(pub.count_at_least(Public.LISTENER))
+	var walk_n := int(walk_p) + (1 if randf() < walk_p - int(walk_p) else 0)
+	pub.apply_gig(roll.people, admit, crowd, city, walk_n)
 	var review_note := _review_impact(critic, f)
-	var new_listeners := Game.listeners + Game.true_fans - l0
+	# People new to the band: the walk-ins who got hooked. Shown as the
+	# expected number (whole simulated people are too coarse once each
+	# stands for hundreds), never less than what actually changed.
+	var new_listeners := maxf(roundf(a_walk * pub.walkin_rate(city, crowd)), pub.real_at_least(Public.LISTENER) - engaged0)
 	var new_fans := Game.true_fans - f0
 	if crowd >= 4.0:
 		pub.nudge(0.3)

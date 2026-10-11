@@ -818,6 +818,28 @@ func gig_crowd(venue_city: int, travel: float, tour: bool, expected: bool = fals
 
 ## After the gig: the crowd's verdict changes how they feel, and the best
 ## walk-ins become listeners. Returns tier changes in people.
+## Chance a walk-in who isn't already into you starts listening.
+func walkin_chance(i: int, crowd: float) -> float:
+	var r := crowd / 5.0
+	return (0.25 + taste(i) * 0.75) * r * r
+
+
+## Average walk-in chance in a city, from a sample of locals (for showing
+## "new listeners" at a gig, where whole simulated people are too coarse).
+func walkin_rate(venue_city: int, crowd: float) -> float:
+	_ensure()
+	var c: Dictionary = cities[venue_city]
+	var total := 0.0
+	var n := 0
+	for k in 60:
+		var i: int = int(c.start) + randi() % int(c.count)
+		if tier[i] >= REGULAR:
+			continue
+		total += walkin_chance(i, crowd)
+		n += 1
+	return total / n if n > 0 else 0.0
+
+
 func apply_gig(people: PackedInt32Array, admit: float, crowd: float, venue_city: int, walk_people: int) -> Dictionary:
 	_ensure()
 	var before_l := count_at_least(LISTENER)
@@ -835,11 +857,16 @@ func apply_gig(people: PackedInt32Array, admit: float, crowd: float, venue_city:
 		_update_tier(i, false)
 	var c: Dictionary = cities[venue_city]
 	var r := crowd / 5.0
+	# Walk-ins who enjoyed it start listening (more likely if it's their sort
+	# of music and the gig was good).
 	for k in mini(walk_people, int(c.count)):
 		var i: int = int(c.start) + randi() % int(c.count)
 		if tier[i] >= REGULAR:
 			continue
-		fanatic[i] = fanatic[i] + taste(i) * r * r * randf_range(8.0, 24.0)
+		if randf() < walkin_chance(i, crowd):
+			fanatic[i] = maxf(fanatic[i] + randf_range(2.0, 6.0), randf_range(9.0, 14.0))
+		else:
+			fanatic[i] = fanatic[i] + taste(i) * r * randf_range(2.0, 6.0)
 		_update_tier(i, false)
 	pulse_city(venue_city, 0.03 * r)
 	_recount()
