@@ -171,6 +171,8 @@ godot --headless --path . res://tests/sim_test.tscn -- --weeks=400 --runs=4
 godot --path . -- --autotest --out=res://tests/shots
 #   --uiscale=3    test the XL interface size (narrow phone layouts)
 #   --monkey --steps=3000   press random buttons to smoke-test every UI callback
+#   --gigshots              play a career and capture gig night at a small, medium and big venue
+#                           (use --resolution 1440x1900 to fit the whole screen)
 
 # Public base performance and save size
 godot --headless --path . res://tests/perf_check.tscn

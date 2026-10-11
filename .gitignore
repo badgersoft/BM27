@@ -8,3 +8,4 @@ export_credentials.cfg
 tests/out_*.png
 tests/shots/
 tests/shots_xl/
+tests/shots_gig/
