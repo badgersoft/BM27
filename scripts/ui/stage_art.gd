@@ -130,9 +130,8 @@ static func _hall(s: PackedStringArray, c: Color, rng: RandomNumberGenerator) ->
 	# The paper banner, taped up.
 	s.append('<rect x="330" y="62" width="340" height="50" fill="#efe6cf"/><rect x="322" y="58" width="22" height="10" fill="#d9cfb0" opacity="0.8"/><rect x="656" y="58" width="22" height="10" fill="#d9cfb0" opacity="0.8"/>')
 	# Combo amps on the floor.
-	for ax in [150.0, 770.0]:
+	for ax in [140.0, 650.0]:
 		s.append('<rect x="%d" y="206" width="76" height="56" rx="5" fill="#1d1d22" stroke="#33333c" stroke-width="3"/><rect x="%d" y="214" width="60" height="38" rx="3" fill="#2a2a32"/>' % [ax, ax + 8])
-	_drums(s, c, 0.92)
 
 
 ## Pub or club: bare brick, ceiling pipes, a bar with a lot of bottles, two
@@ -169,9 +168,8 @@ static func _pub(s: PackedStringArray, c: Color, rng: RandomNumberGenerator) -> 
 	for tx in [830, 860, 890]:
 		s.append('<rect x="%d" y="186" width="6" height="22" fill="#c9c9c9"/><rect x="%d" y="180" width="12" height="8" rx="2" fill="#%s"/>' % [tx, tx - 3, n])
 	# Combo amps.
-	for ax in [140.0, 690.0]:
+	for ax in [120.0, 630.0]:
 		s.append('<rect x="%d" y="196" width="80" height="62" rx="5" fill="#16161b" stroke="#2c2c34" stroke-width="3"/><rect x="%d" y="204" width="64" height="44" rx="3" fill="#24242c"/>' % [ax, ax + 8])
-	_drums(s, c, 0.95)
 
 
 ## Theatre or town hall: red curtains, a lighting truss and a proper stage.
@@ -185,7 +183,6 @@ static func _theatre(s: PackedStringArray, c: Color, rng: RandomNumberGenerator)
 		s.append('<circle cx="%d" cy="12" r="9" fill="#%s"/>' % [x, _hex(c.lightened(0.5))])
 	s.append('<rect x="250" y="44" width="500" height="64" rx="6" fill="#121218" stroke="#%s" stroke-width="3"/>' % _hex(c))
 	_stacks(s, [160.0, 750.0], 1)
-	_drums(s, c, 1.0)
 	# Curtains and a scalloped valance.
 	for side in [0, 1]:
 		var x0 := 0.0 if side == 0 else 910.0
@@ -223,7 +220,6 @@ static func _arena(s: PackedStringArray, c: Color, rng: RandomNumberGenerator) -
 			s.append('<rect x="%d" y="%d" width="22" height="13" rx="2" fill="#16161b" stroke="#2c2c34" stroke-width="2"/>' % [px, 44 + k * 14])
 	s.append('<rect x="270" y="36" width="460" height="70" rx="6" fill="#0d0d14" stroke="#%s" stroke-width="4"/>' % _hex(c))
 	_stacks(s, [230.0, 690.0], 2)
-	_drums(s, c, 1.0)
 	# Haze.
 	s.append('<rect x="0" y="200" width="1000" height="70" fill="#ffffff" opacity="0.04"/>')
 
@@ -258,7 +254,6 @@ static func _stadium(s: PackedStringArray, c: Color, rng: RandomNumberGenerator,
 	# The giant central screen carries the band name.
 	s.append('<rect x="300" y="30" width="400" height="84" rx="6" fill="url(#screen)" stroke="#%s" stroke-width="4"/>' % lit)
 	_stacks(s, [250.0, 680.0], 3)
-	_drums(s, c, 1.0)
 
 
 # ----------------------------------------------------------- stage parts
@@ -271,26 +266,37 @@ static func _stacks(s: PackedStringArray, xs: Array, wide: int) -> void:
 			s.append('<rect x="%d" y="160" width="54" height="40" rx="3" fill="#202028"/><rect x="%d" y="208" width="54" height="44" rx="3" fill="#202028"/>' % [x + 8, x + 8])
 
 
-static func _drums(s: PackedStringArray, c: Color, sc: float) -> void:
+## Where everyone stands, per style: guitar, singer, drums, bass (x), and
+## the height of the stage floor. The drummer sits back and to one side of
+## the singer so they don't overlap, and low enough to clear the banner.
+static func _layout(st: int) -> Dictionary:
+	match st:
+		HALL: return {"gtr": 250.0, "voc": 420.0, "drm": 570.0, "bass": 740.0, "floor": 262.0}
+		PUB: return {"gtr": 230.0, "voc": 400.0, "drm": 545.0, "bass": 715.0, "floor": 262.0}
+	return {"gtr": 250.0, "voc": 425.0, "drm": 575.0, "bass": 760.0, "floor": 258.0}
+
+
+## The kit on its riser, drawn over the (seated) drummer's legs.
+static func _drums(s: PackedStringArray, c: Color, x: float, floor_y: float) -> void:
 	var hex := _hex(c)
-	var y := 200.0 + (1.0 - sc) * 60.0
-	s.append('<rect x="390" y="%d" width="220" height="40" fill="#18181e"/>' % y)
-	s.append('<ellipse cx="500" cy="%d" rx="34" ry="34" fill="#22222a" stroke="#%s" stroke-width="3"/>' % [y - 4, hex])
-	s.append('<ellipse cx="452" cy="%d" rx="18" ry="6" fill="#c9a227"/><ellipse cx="552" cy="%d" rx="20" ry="6" fill="#c9a227"/>' % [y - 24, y - 30])
-	s.append('<path d="M452 %d V%d M552 %d V%d" stroke="#555" stroke-width="3"/>' % [y - 24, y + 30, y - 30, y + 30])
+	var top := floor_y - 34.0
+	s.append('<rect x="%d" y="%d" width="200" height="34" fill="#18181e"/>' % [x - 100, top])
+	s.append('<ellipse cx="%d" cy="%d" rx="32" ry="32" fill="#22222a" stroke="#%s" stroke-width="3"/>' % [x, top - 6, hex])
+	s.append('<ellipse cx="%d" cy="%d" rx="16" ry="5" fill="#c9a227"/><ellipse cx="%d" cy="%d" rx="18" ry="5" fill="#c9a227"/>' % [x - 46, top - 40, x + 48, top - 46])
+	s.append('<path d="M%d %d V%d M%d %d V%d" stroke="#555" stroke-width="3"/>' % [x - 46, top - 40, top, x + 48, top - 46, top])
 
 
 static func _band(s: PackedStringArray, c: Color, st: int) -> void:
-	# Small halls have a low stage, so the band stands a little lower.
-	var drop := 0.0
-	match st:
-		HALL: drop = 10.0
-		PUB: drop = 6.0
+	var L := _layout(st)
+	var fl: float = L.floor
 	var rim := _hex(c.lightened(0.4)) if st != HALL else "8a8478"
-	s.append(_figure(500.0, 112.0 + drop * 1.5, 0.82, rim, "drums"))
-	s.append(_figure(300.0, 160.0 + drop, 1.0, rim, "guitar"))
-	s.append(_figure(700.0, 160.0 + drop, 1.0, rim, "bass"))
-	s.append(_figure(512.0, 168.0 + drop, 1.08, rim, "vocals"))
+	# Feet (and the mic stand) sit exactly on the stage: a figure is 108
+	# units tall before scaling.
+	s.append(_figure(L.drm, fl - 104.0, 0.8, rim, "drums"))
+	_drums(s, c, L.drm, fl)
+	s.append(_figure(L.gtr, fl - 108.0, 1.0, rim, "guitar"))
+	s.append(_figure(L.bass, fl - 108.0, 1.0, rim, "bass"))
+	s.append(_figure(L.voc, fl - 108.0 * 1.08, 1.08, rim, "vocals"))
 
 
 static func _floor(s: PackedStringArray, c: Color, st: int) -> void:
@@ -324,11 +330,6 @@ static func _crowd(s: PackedStringArray, rng: RandomNumberGenerator, st: int, fi
 					if rng.randf() < 0.05 + hands * 0.12:
 						s.append('<rect x="%d" y="%d" width="3" height="5" fill="#e6f0ff" opacity="0.85"/>' % [x + 2, y - 10])
 				x += rng.randf_range(7.0, 11.0)
-	if st == STADIUM:
-		# Festival flags and a few banners above the crowd.
-		for k in 6:
-			var fx := rng.randi_range(40, 960)
-			s.append('<path d="M%d 330 L%d 270" stroke="#555" stroke-width="2"/><polygon points="%d,270 %d,278 %d,286" fill="#%s"/>' % [fx, fx, fx, fx + 22, fx, _hex(c.lightened(0.3)) if k % 2 == 0 else "ffc53d"])
 	for row in 4:
 		var y := 300.0 + row * 22.0
 		var shade := Color("#08080b").lerp(Color("#17161c"), float(3 - row) / 3.0)
@@ -342,7 +343,11 @@ static func _crowd(s: PackedStringArray, rng: RandomNumberGenerator, st: int, fi
 					var ax2 := x + rng.randf_range(-8.0, 8.0)
 					var top := hy - r - rng.randf_range(18.0, 32.0)
 					s.append('<path d="M%d %d L%d %d" stroke="#%s" stroke-width="6" stroke-linecap="round"/>' % [x + r * 0.7, hy + r, ax2, top, _hex(shade)])
-					if st >= ARENA and rng.randf() < 0.3:
+					var held := rng.randf()
+					if held < 0.22:
+						# A pint held aloft.
+						s.append('<rect x="%d" y="%d" width="9" height="13" rx="1.5" fill="#d9952b"/><rect x="%d" y="%d" width="9" height="4" rx="1.5" fill="#f4ecd8"/>' % [ax2 - 4, top - 14, ax2 - 4, top - 16])
+					elif st >= ARENA and held < 0.5:
 						s.append('<rect x="%d" y="%d" width="5" height="8" rx="1" fill="#e6f0ff" opacity="0.9"/>' % [ax2 - 2, top - 8])
 			x += rng.randf_range(20.0, 30.0)
 
@@ -350,7 +355,7 @@ static func _crowd(s: PackedStringArray, rng: RandomNumberGenerator, st: int, fi
 ## Flames along the front of the stage (bigger when the crowd's loving it).
 static func _pyro(s: PackedStringArray, rating: float) -> void:
 	var h := 50.0 + clampf(rating - 3.0, 0.0, 2.0) * 25.0
-	for fx in [70.0, 210.0, 790.0, 930.0]:
+	for fx in [60.0, 160.0, 850.0, 945.0]:
 		s.append('<path d="M%d 258 C%d %d %d %d %d %d C%d %d %d %d %d 258 Z" fill="url(#flame)"/>' % [
 			fx - 18, fx - 26, 258 - h * 0.5, fx - 4, 258 - h * 0.7, fx, 258 - h,
 			fx + 6, 258 - h * 0.6, fx + 26, 258 - h * 0.4, fx + 18])

@@ -57,7 +57,7 @@ The game autosaves every week and when a phone sends the app to the background.
 | Rehearsing, potential caps, rare breakthroughs | `WeekSim._train` |
 | Funds, Fans, Listeners, Genre, Fame, Lifespan (per member, ★ for originals) | HQ top bar, Fans page and Band page |
 | Monthly gig: book 1 of 2–3 offers, or skip (costs fans); sometimes no venue will have you | Gigs page, `WeekSim.generate_gig_offers` |
-| Gig-night splash: crowd breakdown, crowd and critic ratings, conversions | `EventView._gig` + `StageArt`: a generated stage scene per venue size (village hall with bunting and a tea urn, pub with a bar and neon sign, theatre with curtains, arena with rigs and screens, stadium with roof, pyro and phone lights; a pyramid stage at the festival). Crowd density matches attendance |
+| Gig-night splash: crowd breakdown, crowd and critic ratings, conversions | `EventView._gig` + `StageArt`: a generated stage scene per venue size (village hall with bunting and a tea urn, pub with a bar and neon sign, theatre with curtains, arena with rigs and screens, stadium with roof, pyro, phone lights and pints in the air; a pyramid stage at the festival). Crowd density matches attendance |
 | Signing at or below asking price depending on contentment | Negotiation dialog (`MusicianView.open_offer`) |
 | Famous enough: stars approach you at up to 50% off | `Events._star_offer` |
 | Fortnightly newspaper; you start in the small print and work up to the headline | `Events.queue_news`, `EventView._news` |
