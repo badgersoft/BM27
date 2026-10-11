@@ -1,5 +1,10 @@
 ; Engine configuration file.
-; Band Manager 27 — Badger-soft
+; It's best edited using the editor UI and not directly,
+; since the parameters that go here are not all obvious.
+;
+; Format:
+;   [section] ; section goes between []
+;   param=value ; assign values to parameters
 
 config_version=5
 
@@ -9,12 +14,12 @@ config/name="Band Manager 27"
 config/description="A rock band management simulation by Badger-soft."
 config/version="0.1.0"
 run/main_scene="res://scenes/main.tscn"
+config/quit_on_go_back=false
 config/features=PackedStringArray("4.7", "GL Compatibility")
 run/low_processor_mode=true
 boot_splash/bg_color=Color(0.0588235, 0.0588235, 0.0705882, 1)
 boot_splash/show_image=false
 config/icon="res://icon.svg"
-config/quit_on_go_back=false
 
 [autoload]
 
@@ -28,21 +33,14 @@ window/size/viewport_width=1280
 window/size/viewport_height=720
 window/size/window_width_override=1440
 window/size/window_height_override=810
+window/energy_saving/keep_screen_on=false
 window/stretch/mode="canvas_items"
 window/stretch/aspect="expand"
 window/handheld/orientation=4
-window/energy_saving/keep_screen_on=false
 
 [gui]
 
-common/snap_controls_to_pixels=true
-theme/default_font_antialiasing=1
 timers/tooltip_delay_sec=0.35
-
-[input_devices]
-
-pointing/emulate_touch_from_mouse=false
-pointing/emulate_mouse_from_touch=true
 
 [physics]
 
