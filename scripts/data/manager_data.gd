@@ -19,7 +19,7 @@ const LIST := [
 	},
 	{
 		"id": "dazza", "name": "Darren \"Dazza\" Pike", "short": "Dazza", "gender": "m", "age": 23,
-		"genre": "poppunk", "funds": 800,
+		"genre": "punk", "funds": 800,
 		"album": "Dookie Monster", "album_artist": "Green Hay",
 		"bio": "Ran the biggest fan page on a social network nobody remembers. Managed his cousin's ska band for three weeks before they split over a trombone. Wears shorts all year round.",
 		"tastes": "Anything you can do a kick-flip to. Choruses that go 'whoa-oh'.",
@@ -69,17 +69,17 @@ const LIST := [
 	},
 	{
 		"id": "zed", "name": "Zoe \"Zed\" Kowalski", "short": "Zed", "gender": "f", "age": 19,
-		"genre": "edm", "funds": 500,
-		"album": "Discovery Channel", "album_artist": "Daft Funk",
-		"bio": "Built a following of 40,000 by DJing in her bedroom wearing a traffic cone. Has never been to a gig that didn't have lasers. Speaks fluent algorithm.",
-		"tastes": "Drops, builds, lasers and more drops.",
+		"genre": "indie", "funds": 500,
+		"album": "Favourite Worst Nightmare Before Christmas", "album_artist": "Arctic Donkeys",
+		"bio": "Built a following of 40,000 posting bedroom covers while wearing a traffic cone. Has never been to a gig she didn't film. Speaks fluent algorithm.",
+		"tastes": "Indie bangers with a synth line and a chorus you can film yourself dancing to.",
 		"perk": "viral", "perk_name": "Gone Viral", "perk_desc": "Knows the algorithm: streaming listeners grow 50% faster.",
 		"look": {"skin": 0, "hair": "pixie", "hair_color": "#00c2a8", "facial": "none", "glasses": "none", "acc": "headphones",
 			"cloth": "tee", "cloth_color": "#1b1b2f", "expr": "grin", "age": 0, "lips": "#7a2e8e", "bg": "#00f5d4"}
 	},
 	{
 		"id": "barry", "name": "Barry Wheeler", "short": "Barry", "gender": "m", "age": 72,
-		"genre": "bluesrock", "funds": 3700,
+		"genre": "rock", "funds": 3700,
 		"album": "Exile on Mean Street", "album_artist": "The Rolling Scones",
 		"bio": "Managed pub bands since before decimalisation. Has a handshake that closes deals and a cardigan that has seen things. Claims he invented the guest list.",
 		"tastes": "Twelve bars, a slide guitar and a pint of mild.",
@@ -109,7 +109,7 @@ const LIST := [
 	},
 	{
 		"id": "nigel", "name": "Dr. Nigel Pemberton", "short": "Nigel", "gender": "m", "age": 61,
-		"genre": "shoegaze", "funds": 3300,
+		"genre": "altrock", "funds": 3300,
 		"album": "Loveless Than Zero", "album_artist": "My Bloody Valentines Day",
 		"bio": "Retired dentist. Spent his career listening to drills and decided he loved the noise. Owns 64 reverb pedals and labels each one in Latin.",
 		"tastes": "Hazy, dreamy, ridiculously loud. Lyrics optional.",

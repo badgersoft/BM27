@@ -19,7 +19,7 @@ func build() -> void:
 func _focus_card() -> Control:
 	var c: Array = UI.card("This week's focus", "target", "Card", UITheme.GOLD)
 	var grid := GridContainer.new()
-	grid.columns = 5 if get_viewport().get_visible_rect().size.x >= 1100 else 3
+	grid.columns = 6 if get_viewport().get_visible_rect().size.x >= 1300 else 3
 	grid.add_theme_constant_override("h_separation", 8)
 	grid.add_theme_constant_override("v_separation", 8)
 	for key in WeekSim.FOCUS_ORDER:
@@ -44,17 +44,34 @@ func _focus_card() -> Control:
 		b.add_child(UI.full_rect(v))
 		grid.add_child(b)
 	c[1].add_child(grid)
-	var f2: Dictionary = WeekSim.FOCUS[Game.focus]
-	var hint: String = f2.desc
-	match Game.focus:
-		"promote": hint += "  This week: %s." % U.money(Game.promote_cost())
-		"rehearse": hint += "  Training at %s (×%.2f)." % [Data.practice_venue(Game.practice_idx).name, float(Data.practice_venue(Game.practice_idx).train)]
-		"write": hint += "  Song bank: %d / 100." % int(Game.songcraft)
-	c[1].add_child(UI.label(hint, "BodyMuted", null, true))
+	# The description box is sized for the longest option, so switching focus
+	# never moves anything below it.
+	var hints: Array = []
+	for key in WeekSim.FOCUS_ORDER:
+		hints.append(_focus_hint(key))
+	var hl := UI.label(_focus_hint(Game.focus), "BodyMuted", null, true)
+	hl.resized.connect(func():
+		var font := hl.get_theme_font("font")
+		var fs := hl.get_theme_font_size("font_size")
+		var hmax := 0.0
+		for t in hints:
+			hmax = maxf(hmax, font.get_multiline_string_size(t, HORIZONTAL_ALIGNMENT_LEFT, hl.size.x, fs).y)
+		if absf(hl.custom_minimum_size.y - hmax) > 1.0:
+			hl.custom_minimum_size.y = hmax)
+	c[1].add_child(hl)
 	var fat := float(Game.flags.get("fatigue", 0.0))
 	if fat >= 6.0:
 		c[1].add_child(UI.icon_label("alert", "The band are getting worn out. A Chill Out week would do them good.", Color("#ff9f43"), "Small"))
 	return c[0]
+
+
+static func _focus_hint(key: String) -> String:
+	var hint: String = WeekSim.FOCUS[key].desc
+	match key:
+		"promote": hint += "  This week: %s." % U.money(Game.promote_cost())
+		"rehearse": hint += "  Training at %s (×%.2f)." % [Data.practice_venue(Game.practice_idx).name, float(Data.practice_venue(Game.practice_idx).train)]
+		"write": hint += "  %d demo songs, next one %d%% written." % [Game.demos.size(), int(Game.demo_progress * 100.0)]
+	return hint
 
 
 func _gig_card() -> Control:
@@ -268,7 +285,9 @@ func _band_stats_card() -> Control:
 	var c: Array = UI.card("Band stats", "amp", "Card", UITheme.GOLD)
 	var score := Game.band_score()
 	c[1].add_child(_bar_row("Live rating", score, 130.0, UITheme.ACCENT, str(int(score))))
-	c[1].add_child(_bar_row("Song bank", Game.songcraft, 100.0, UITheme.INFO, str(int(Game.songcraft))))
+	var demo_row := _bar_row("Demo songs", Game.setlist_strength(), 100.0, UITheme.INFO, str(Game.demos.size()))
+	demo_row.tooltip_text = "Songs you've written but not released. The bar is how strong a live set they make (the best ten, needs eight or more).\nSingles use your best demo; albums use your best ten."
+	c[1].add_child(demo_row)
 	var fat := float(Game.flags.get("fatigue", 0.0))
 	c[1].add_child(_bar_row("Fatigue", fat, 10.0, Color("#ff9f43"), "%d/10" % int(fat)))
 	c[1].add_child(_bar_row("Scene trend", Game.trend(), 1.3, UITheme.GOOD, "×%.2f" % Game.trend()))

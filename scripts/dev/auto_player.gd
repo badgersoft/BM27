@@ -56,8 +56,8 @@ func bot_week() -> void:
 		Game.set_focus("rehearse")
 		return
 	if Game.funds < 150:
-		Game.set_focus("busk")
-	elif Game.songcraft < 40 and Game.week % 3 == 0:
+		Game.set_focus("odd_jobs" if Game.week % 2 == 0 else "busk")
+	elif Game.demos.size() < 8 and Game.week % 3 == 0:
 		Game.set_focus("write")
 	elif Game.week % 3 == 1 and Game.funds > Game.promote_cost() * 6:
 		Game.set_focus("promote")
@@ -93,7 +93,9 @@ func bot_event(ev: Dictionary) -> void:
 				if float(MediaData.PRODUCERS[idx].fee) <= Game.funds * 0.5:
 					pick = idx
 			Game.resolve_event(ev, pick)
-		"name_release": Game.resolve_event(ev, ev.options[0])
+		"name_release":
+			ev.feel = randi() % 5
+			Game.resolve_event(ev, ev.options[0])
 		"label", "doc", "film": Game.resolve_event(ev, "accept")
 		"star": Game.resolve_event(ev, "accept" if float(ev.price) <= Game.funds * 0.5 else "decline")
 		"complaint":
@@ -118,8 +120,8 @@ func bot_event(ev: Dictionary) -> void:
 					if Game.value_of(m2) <= Game.funds:
 						Game.sign_musician(m2.id, Game.value_of(m2))
 						break
-		"random":
-			var e: Dictionary = MediaData.RANDOM_EVENTS[int(ev.idx)]
+		"random", "fame":
+			var e: Dictionary = Events.event_def(ev)
 			var c0: Dictionary = e.choices[0]
 			var ok: bool = not c0.has("cost_scale") or Events.random_cost(c0) <= Game.funds * 0.3
 			Game.resolve_event(ev, 0 if ok else 1)

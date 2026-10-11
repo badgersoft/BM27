@@ -30,6 +30,8 @@ func _release_card(r: Dictionary) -> Control:
 	if r.status == "charting":
 		tr.add_child(UI.chip("In the charts", UITheme.GOOD))
 	tr.add_child(UI.genre_chip(r.get("genre", Game.genre)))
+	if r.has("feel"):
+		tr.add_child(UI.chip(Charts.FEELS[clampi(int(r.feel), 0, Charts.FEELS.size() - 1)].name, UITheme.MUTED))
 	v.add_child(tr)
 	v.add_child(UI.label(r.title, "H3", null, true))
 	v.add_child(UI.label("Released %s · %s %s" % [U.date_label(int(r.week)), "on" if album else "produced by", r.producer], "Small", null, true))

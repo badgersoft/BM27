@@ -116,6 +116,7 @@ func open_modal(content: Control, width: float = 640.0, dismissable: bool = fals
 	content.custom_minimum_size.x = w - pad
 	content.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	scroll.add_child(content)
+	UI.scroll_hints(scroll)
 	panel.add_child(scroll)
 	panel.custom_minimum_size.x = w
 	center.add_child(panel)
