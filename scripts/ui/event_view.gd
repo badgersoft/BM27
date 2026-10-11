@@ -107,10 +107,14 @@ static func _gig(main: Control, ev: Dictionary, done: Callable) -> void:
 	rc[1].add_child(UI.stars(float(g.crowd), 30))
 	rc[1].add_child(UI.label(g.crowd_quote, "Body", null, true))
 	cols.add_child(rc[0])
-	var cc: Array = UI.card("The local critic", "pen", "CardFlat", UITheme.INFO)
+	var cc: Array = UI.card("The critic", "pen", "CardFlat", UITheme.INFO)
 	cc[0].size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	cc[1].add_child(UI.stars(float(g.critic), 30, UITheme.INFO))
 	cc[1].add_child(UI.label("“%s”" % g.critic_quote, "Body", null, true))
+	if str(g.get("critic_advice", "")) != "":
+		cc[1].add_child(UI.icon_label("info", "Advice: " + str(g.critic_advice), UITheme.MUTED, "Small", 16, true))
+	if str(g.get("review_note", "")) != "":
+		cc[1].add_child(UI.label(str(g.review_note), "Small", UITheme.INFO, true))
 	cols.add_child(cc[0])
 	v.add_child(cols)
 	var money: Array = UI.card("The money", "funds", "CardFlat", UITheme.GOLD)
@@ -288,7 +292,7 @@ static func _interview(main: Control, ev: Dictionary, done: Callable) -> void:
 static func _complaint_reason(m: Dictionary) -> String:
 	if int(m.inst) < Data.expected_inst_tier(m.skill) - 1:
 		return "My %s is falling apart, boss. I'm embarrassed to play it on stage." % Data.instrument(m.role, int(m.inst)).name
-	if Data.genre_distance(m.genre, Game.genre) == 2:
+	if Game.genre_match(m) == 0 and Data.genre_distance(m.genre, Game.genre) == 2:
 		return "I didn't join a band to play %s. I'm a %s person, through and through." % [Data.genre_name(Game.genre), Data.genre_name(m.genre)]
 	if float(Game.flags.get("fatigue", 0.0)) >= 7.0:
 		return "We're knackered. Rehearse, gig, rehearse, gig... when do we get a break?"
@@ -350,7 +354,7 @@ static func _left(main: Control, ev: Dictionary, done: Callable) -> void:
 		var iv := UI.vbox(2)
 		iv.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		iv.add_child(UI.label(c.name, "Strong"))
-		iv.add_child(UI.label("Age %d · %s · %s" % [int(c.age), Data.genre_name(c.genre), Game.temperament_word(int(c.ease))], "Small"))
+		iv.add_child(UI.label("Age %d · %s / %s · %s" % [int(c.age), Data.genre_name(c.genre), Data.genre_name(c.get("genre2", c.genre)), Game.temperament_word(int(c.ease))], "Small"))
 		rh.add_child(iv)
 		rh.add_child(MusicianView.skill_block(c, 200))
 		var b := UI.button("FREE" if val == 0 else U.money(val), "handshake", "Gold", func(): _choose(main, m, ev, c.id, done))
@@ -367,7 +371,10 @@ static func _left(main: Control, ev: Dictionary, done: Callable) -> void:
 static func _producer(main: Control, ev: Dictionary, done: Callable) -> void:
 	var v := _frame("The phone rings...", "A producer wants to record a single", "vinyl", UITheme.GOLD)
 	v.add_child(UI.label("Word's got around about %s. Choose who'll produce your single. Better producers cost more, but even a good one can have an off day." % Game.band_name, "Body", null, true))
-	v.add_child(UI.label("Song bank: %d / 100 (better songs, better single)" % int(Game.songcraft), "Small"))
+	if Game.demos.is_empty():
+		v.add_child(UI.icon_label("alert", "You haven't got any demo songs! You'd have to write something in the studio, and it won't be great.", UITheme.BAD, "Small", 16, true))
+	else:
+		v.add_child(UI.icon_label("pen", "You'll record your best demo (%s). %d demo songs in the bank." % [Game.demo_word(Game.best_demo()), Game.demos.size()], UITheme.MUTED, "Small", 16, true))
 	var m: Control
 	for idx in ev.options:
 		var p: Dictionary = MediaData.PRODUCERS[int(idx)]
@@ -392,10 +399,57 @@ static func _producer(main: Control, ev: Dictionary, done: Callable) -> void:
 	m = main.open_modal(v, 760)
 
 
+## What each feel means for the player (Charts.FEELS order).
+const FEEL_DESC := [
+	"Catchy and broad. Climbs fast and grabs new listeners, but fades quickly, and some of your fans will call it a sell-out. Every so often one of these comes back as a massive hit.",
+	"Accessible, with your genre underneath. Wins new listeners with less risk to your fans (they might even love it). Rises a little slower and lasts a little longer.",
+	"Bang on genre. Pleases your fans and finds some new listeners, nothing wild. A slow riser with staying power. Could even sneak into the top 10.",
+	"Pushes your genre's sound. Genre lovers will applaud; outsiders might not get it. A steady climber that hangs around for a while.",
+	"All in. Your fans will love it, people outside the genre won't. Takes a while to climb, but if it catches it could be huge, and stay for ages.",
+]
+
+
 static func _name_release(main: Control, ev: Dictionary, done: Callable) -> void:
 	var album: bool = ev.kind == "album"
-	var v := _frame("Name your %s" % ("album" if album else "single"), "What's it called?", "disc" if album else "vinyl", UITheme.GOLD)
-	v.add_child(UI.label("Recorded with %s. Pick a title that fits your %s sound, or write your own." % [ev.producer, Data.genre_name(Game.genre)], "Body", null, true))
+	var v := _frame("Name your %s" % ("album" if album else "single"), "How does it sound?", "disc" if album else "vinyl", UITheme.GOLD)
+	v.add_child(UI.label("Recorded with %s. Set the feel, then pick a title that fits your %s sound, or write your own." % [ev.producer, Data.genre_name(Game.genre)], "Body", null, true))
+	if not ev.has("feel"):
+		ev.feel = 2
+	# The feel slider: Poppy .. Dial Up To 11.
+	var fc := UI.panel("CardFlat")
+	var fv := UI.vbox(8)
+	fc.add_child(fv)
+	var fh := UI.hbox(8)
+	fh.add_child(UI.label("THE FEEL", "Caps", UITheme.GOLD))
+	fh.add_child(UI.spacer())
+	var fname := UI.label("", "H3", UITheme.GOLD)
+	fh.add_child(fname)
+	fv.add_child(fh)
+	var slider := HSlider.new()
+	slider.min_value = 0
+	slider.max_value = Charts.FEELS.size() - 1
+	slider.step = 1
+	slider.tick_count = Charts.FEELS.size()
+	slider.ticks_on_borders = true
+	slider.value = int(ev.feel)
+	slider.custom_minimum_size.y = 36
+	slider.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	fv.add_child(slider)
+	var ends := UI.hbox(8)
+	ends.add_child(UI.label("POPPY", "Caps"))
+	ends.add_child(UI.spacer())
+	ends.add_child(UI.label("UP TO 11", "Caps"))
+	fv.add_child(ends)
+	var fdesc := UI.label("", "Small", UITheme.TEXT, true)
+	fdesc.custom_minimum_size.y = fdesc.get_line_height() * 3 + 4
+	fv.add_child(fdesc)
+	var show_feel := func(val: float):
+		ev.feel = int(val)
+		fname.text = Charts.FEELS[int(val)].name
+		fdesc.text = FEEL_DESC[int(val)]
+	show_feel.call(slider.value)
+	slider.value_changed.connect(show_feel)
+	v.add_child(fc)
 	var m: Control
 	var grid := GridContainer.new()
 	grid.columns = 1
@@ -405,6 +459,7 @@ static func _name_release(main: Control, ev: Dictionary, done: Callable) -> void
 		b.add_theme_font_size_override("font_size", 21)
 		b.alignment = HORIZONTAL_ALIGNMENT_LEFT
 		b.custom_minimum_size.y = 54
+		b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		grid.add_child(b)
 	v.add_child(grid)
 	var row := UI.hbox(10)
@@ -414,15 +469,20 @@ static func _name_release(main: Control, ev: Dictionary, done: Callable) -> void
 	le.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	le.custom_minimum_size.y = 50
 	row.add_child(le)
-	var go := UI.button("RELEASE IT", "check", "Gold", func():
-		if le.text.strip_edges() != "":
-			_choose(main, m, ev, le.text.strip_edges(), done))
+	# Your own title can't be one that's already in the charts or released.
+	var submit := func(t: String):
+		t = t.strip_edges()
+		if t == "":
+			return
+		if Charts.titles_in_use().has(t.to_lower()):
+			main.show_toast("'%s' is already taken. Try something else." % t, "bad")
+			return
+		_choose(main, m, ev, t, done)
+	var go := UI.button("RELEASE IT", "check", "Gold", func(): submit.call(le.text))
 	row.add_child(go)
-	le.text_submitted.connect(func(t):
-		if t.strip_edges() != "":
-			_choose(main, m, ev, t.strip_edges(), done))
+	le.text_submitted.connect(submit)
 	v.add_child(row)
-	m = main.open_modal(v, 680)
+	m = main.open_modal(v, 720)
 
 
 static func _label(main: Control, ev: Dictionary, done: Callable) -> void:

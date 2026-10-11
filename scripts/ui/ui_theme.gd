@@ -229,6 +229,19 @@ static func _build() -> Theme:
 	paper.shadow_color = Color(0, 0, 0, 0.6)
 	paper.shadow_size = 28
 	t.set_stylebox("panel", "Paper", paper)
+	# Sliders: a chunky track and a big round grabber, easy on touch screens.
+	t.set_stylebox("slider", "HSlider", box(BG_2, 6, LINE, 1, 0, 5))
+	t.set_stylebox("grabber_area", "HSlider", box(GOLD.darkened(0.25), 6, Color(0, 0, 0, 0), 0, 0, 5))
+	t.set_stylebox("grabber_area_highlight", "HSlider", box(GOLD, 6, Color(0, 0, 0, 0), 0, 0, 5))
+	var knob := Image.create(30, 30, false, Image.FORMAT_RGBA8)
+	for y in 30:
+		for x in 30:
+			var d := Vector2(x - 14.5, y - 14.5).length()
+			if d <= 14.5:
+				knob.set_pixel(x, y, GOLD if d <= 11.5 else Color("#140808"))
+	var gtex := ImageTexture.create_from_image(knob)
+	t.set_icon("grabber", "HSlider", gtex)
+	t.set_icon("grabber_highlight", "HSlider", gtex)
 	# Scroll hint: a short, soft shadow (flipped by Godot for the bottom edge).
 	var g := Gradient.new()
 	g.set_color(0, Color(0, 0, 0, 0.75))

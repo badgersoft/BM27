@@ -195,6 +195,13 @@ static func _run() -> void:
 	EventView.present(m, {"type": "name_release", "kind": "single", "quality": 50.0, "it": 1.0, "producer": "Puddle", "options": Data.song_title_options(Game.genre, [])}, func(): pass)
 	await _shot("25_name_release")
 	m.close_all_modals()
+	hq.open_page("charts")
+	load("res://scripts/pages/charts_page.gd").tab = "records"
+	hq.refresh()
+	await _shot("25b_records")
+	load("res://scripts/pages/charts_page.gd").tab = "nat"
+	hq.open_page("home")
+	m.close_all_modals()
 	var star := Events._star_offer()
 	if not star.is_empty():
 		EventView.present(m, star, func(): pass)

@@ -341,29 +341,21 @@ func _taste_table(genre_id: String) -> PackedFloat32Array:
 	var n := genre_ids.size()
 	var t := PackedFloat32Array()
 	t.resize(n * n)
-	var electronic := _electronic_family()
-	var band_guitar := genre_family[gi] != electronic
 	for a in n:
 		for b in n:
-			var v := 0.07
+			# With only seven genres, plenty of people like yours a bit: it's
+			# the ones who really love it who become fans.
+			var v := 0.07   # guitar music fans give other guitar bands a fair hearing
 			if a == gi:
 				v = 1.0
 			elif b == gi:
-				v = 0.65
+				v = 0.45
 			elif genre_family[a] == genre_family[gi]:
-				v = 0.35
+				v = 0.2
 			elif genre_family[b] == genre_family[gi]:
-				v = 0.22
-			elif band_guitar and genre_family[a] != electronic:
-				# Guitar music fans give other guitar bands a fair hearing.
-				v = 0.15
+				v = 0.12
 			t[a * n + b] = v
 	return t
-
-
-func _electronic_family() -> int:
-	var i := genre_ids.find("edm")
-	return int(genre_family[i]) if i >= 0 else -1
 
 
 func taste(i: int) -> float:
@@ -650,7 +642,9 @@ func _pick_city(cs: Array) -> int:
 
 
 ## Win over `real` new listeners (in real people). Returns people affected.
-func add_listeners(real: float, scope: int = SCOPE_REACH) -> int:
+## breadth: -1 (only people who love your genre) .. 0 (normal) .. +1 (catchy,
+## reaches people outside the genre).
+func add_listeners(real: float, scope: int = SCOPE_REACH, breadth: float = 0.0) -> int:
 	if real < 0.0:
 		lose(minf(1.0, -real / maxf(1.0, real_at_least(LISTENER))), LISTENER, 10.0)
 		return 0
@@ -664,7 +658,12 @@ func add_listeners(real: float, scope: int = SCOPE_REACH) -> int:
 			var i: int = int(cities[c].start) + randi() % int(cities[c].count)
 			if tier[i] >= REGULAR:
 				continue
-			if randf() < taste(i) * (0.4 + variance[i] * 0.006):
+			var t := taste(i)
+			if breadth > 0.0:
+				t = lerpf(t, 0.75, breadth * 0.5)
+			elif breadth < 0.0:
+				t = minf(1.0, pow(t, 1.0 - breadth * 1.5) * (1.0 - breadth * 0.3))
+			if randf() < t * (0.4 + variance[i] * 0.006):
 				fanatic[i] = maxf(fanatic[i] + randf_range(2.0, 5.0), randf_range(9.0, 14.0))
 				_update_tier(i, false)
 				added += 1
@@ -683,6 +682,34 @@ func deepen(real: float) -> void:
 		var i: int = engaged[randi() % engaged.size()]
 		fanatic[i] = minf(100.0, fanatic[i] + randf_range(6.0, 14.0) * (0.4 + taste(i)))
 		_update_tier(i, false)
+	_dirty = true
+
+
+## How your existing listeners and fans take a new song's feel
+## (0 Poppy .. 4 Dial Up To 11, see Charts.FEELS). Genre purists hate a sell-out;
+## people who love the genre lap up the heavy stuff, and outsiders cool on it.
+func feel_reaction(feel: int) -> void:
+	_ensure()
+	for i in engaged:
+		var t := taste(i)
+		var tr := int(tier[i])
+		var d := 0.0
+		match feel:
+			0:
+				if tr >= FAN and randf() < 0.35:
+					d = -randf_range(2.0, 8.0) * t * (1.0 - loyalty[i] * 0.006)
+			1:
+				if tr >= FAN:
+					d = randf_range(-3.0, 4.0) * t
+			2:
+				d = randf_range(0.0, 3.0) * t
+			3:
+				d = randf_range(-1.0, 5.0) * (t - 0.3) * 1.5 + variance[i] * 0.02
+			4:
+				d = randf_range(0.0, 8.0) * (t - 0.35) * 1.6
+		if d != 0.0:
+			fanatic[i] = clampf(fanatic[i] + d * 0.4, 0.0, 100.0)
+			_update_tier(i, false)
 	_dirty = true
 
 

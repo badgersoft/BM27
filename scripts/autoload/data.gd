@@ -121,13 +121,27 @@ func build_musicians() -> Array:
 			m.id = "m%03d" % n
 			n += 1
 			out.append(m)
+	# Everyone has a second influence, usually from a neighbouring genre.
+	# Its own RNG so it doesn't reshuffle the rest of the database.
+	var rng2 := RandomNumberGenerator.new()
+	rng2.seed = DB_SEED + 2
+	for m in out:
+		m.genre2 = second_genre(rng2, m.genre)
 	return out
+
+
+func second_genre(rng: RandomNumberGenerator, first: String) -> String:
+	var fam: String = genre(first).family
+	var same: Array = genres.filter(func(g): return g.id != first and g.family == fam)
+	var other: Array = genres.filter(func(g): return g.id != first)
+	var pool: Array = same if (not same.is_empty() and rng.randf() < 0.6) else other
+	return pool[rng.randi_range(0, pool.size() - 1)].id
 
 
 func _base_musician() -> Dictionary:
 	return {
 		"id": "", "name": "", "role": "", "g": "m", "age": 20, "skill": 10.0, "pot": 20.0, "tier": 0,
-		"genre": "rock", "ease": 3, "happy": 60.0, "bio": "", "look": {}, "inst": 0,
+		"genre": "rock", "genre2": "indie", "ease": 3, "happy": 60.0, "bio": "", "look": {}, "inst": 0,
 		"status": "free", "joined": 0, "original": false, "cooldown": 0, "grudge": false,
 		"last_complaint": -99, "gift_fatigue": 0.0, "min_fame": 0, "fame": 0.0, "last_fame_event": -99,
 	}
@@ -242,7 +256,7 @@ func random_look(rng: RandomNumberGenerator, g: String, age: int, genre_id: Stri
 	var natural := ["#1a1412", "#2b1d14", "#4a3324", "#6b4f2a", "#a0522d", "#d9a441", "#e3c27a", "#151515", "#7a5230"]
 	var dyed := ["#e01e5a", "#00c2a8", "#7b2cbf", "#39ff14", "#3a86ff", "#ff9f1c", "#f2f2f2"]
 	var hair_color: String = natural[rng.randi_range(0, natural.size() - 1)]
-	if genre_id in ["punk", "poppunk", "edm", "altrock"] and rng.randf() < 0.35:
+	if genre_id in ["punk", "indie", "altrock"] and rng.randf() < 0.3:
 		hair_color = dyed[rng.randi_range(0, dyed.size() - 1)]
 	if age_band == 3:
 		hair_color = ["#e8e4dc", "#c9c9c9", "#9c9c9c"][rng.randi_range(0, 2)]
@@ -283,9 +297,8 @@ func random_look(rng: RandomNumberGenerator, g: String, age: int, genre_id: Stri
 		acc = "headphones"
 	var cloth_by_genre := {
 		"rock": ["leather", "denim", "tee"], "indie": ["cardigan", "tee", "denim"], "grunge": ["flannel", "cardigan", "tee"],
-		"metal": ["leather", "tee"], "punk": ["leather", "tee"], "poppunk": ["hoodie", "tee"], "britpop": ["parka", "tee", "suit"],
-		"altrock": ["tee", "hoodie", "denim"], "shoegaze": ["cardigan", "hoodie"], "bluesrock": ["denim", "suit", "tee"],
-		"edm": ["hoodie", "tee"],
+		"metal": ["leather", "tee"], "punk": ["leather", "tee", "hoodie"], "britpop": ["parka", "tee", "suit"],
+		"altrock": ["tee", "hoodie", "denim", "cardigan"],
 	}
 	var cloths: Array = cloth_by_genre.get(genre_id, ["tee"])
 	var cloth_colors := ["#1d1d22", "#2b2d42", "#8b2e2e", "#264653", "#3f5f8a", "#6b705c", "#c8553d", "#9d4edd", "#e9c46a", "#f2f2f2", "#e63946", "#2a9d8f"]
@@ -340,30 +353,32 @@ func band_name_options(genre_id: String, count: int = 4) -> Array:
 
 
 func song_title_options(genre_id: String, used: Array, count: int = 3) -> Array:
-	var pool: Array = NameData.SONG.get(genre_id, NameData.SONG.rock).duplicate()
-	pool.shuffle()
-	var out: Array = []
-	for t in pool:
-		if not t in used:
-			out.append(t)
-		if out.size() >= count:
-			break
-	while out.size() < count:
-		out.append("%s (Part %d)" % [pool.pick_random(), randi_range(2, 9)])
-	return out
+	return _title_options(NameData.SONG, genre_id, used, count)
 
 
 func album_title_options(genre_id: String, used: Array, count: int = 3) -> Array:
-	var pool: Array = NameData.ALBUM.get(genre_id, NameData.ALBUM.rock).duplicate()
+	return _title_options(NameData.ALBUM, genre_id, used, count)
+
+
+## Suggestions that aren't already in any chart or used by you before.
+func _title_options(src: Dictionary, genre_id: String, used: Array, count: int) -> Array:
+	var taken := Charts.titles_in_use()
+	for t in used:
+		taken[str(t).to_lower()] = true
+	var pool: Array = src.get(genre_id, src.rock).duplicate()
 	pool.shuffle()
 	var out: Array = []
 	for t in pool:
-		if not t in used:
+		if not str(t).to_lower() in taken:
 			out.append(t)
 		if out.size() >= count:
 			break
-	while out.size() < count:
-		out.append("%s II" % pool.pick_random())
+	var guard := 0
+	while out.size() < count and guard < 20:
+		guard += 1
+		var t2 := Charts.fresh_title(genre_id, src == NameData.ALBUM)
+		if not t2.to_lower() in taken and not t2 in out:
+			out.append(t2)
 	return out
 
 

@@ -272,6 +272,21 @@ const RANDOM_EVENTS := [
 		"choices": [
 			{"label": "Play for free", "fans_pct": 0.03, "listeners_pct": 0.06, "happy": 2, "result": "Feel-good vibes all round. Good karma, good press."},
 			{"label": "Ask for a fee", "cash_scale": 200, "fans_pct": -0.02, "result": "They paid up, but word got around."}]},
+	{"id": "localtv", "title": "Local TV Wants A Video", "icon": "film", "min_fame": 4,
+		"text": "{city} Tonight, the local TV news, want a 30-second clip of the band for their 'Ones To Watch' slot. They need it by Friday.",
+		"choices": [
+			{"label": "Film something proper", "cost_scale": 40, "listeners_flat": 50, "local": true, "listeners_pct": 0.04, "result": "It went out after the weather. Your mum has recorded it four times."},
+			{"label": "Film it on a phone in the shed", "listeners_flat": 20, "local": true, "happy": 2, "result": "Wobbly, a bit dark, oddly charming. The presenter called it 'very authentic'."}]},
+	{"id": "battle", "title": "Battle Of The Bands", "icon": "trophy", "min_fame": 2, "max_fame": 40,
+		"text": "The {city} Battle of the Bands is this Saturday. {rival} have already entered and are telling everyone they'll win.",
+		"choices": [
+			{"label": "Enter and win", "battle": true, "result": ""},
+			{"label": "Battles are for armies", "result": "You stayed home. {rival} won, and they're being unbearable about it."}]},
+	{"id": "photo", "title": "Photographer Wants A Shoot", "icon": "eye", "min_fame": 10,
+		"text": "A student photographer wants to shoot the band for her portfolio, moody and black-and-white, at the gasworks.",
+		"choices": [
+			{"label": "Smoulder for the camera", "listeners_pct": 0.03, "happy": 2, "result": "The photos are brilliant. Everyone looks about 30% cooler than in real life."},
+			{"label": "Too busy", "result": "She shot {rival} instead. Their photos are everywhere now."}]},
 	# Favour gigs: free to play, paid in tips. Mostly a lifeline for skint new bands.
 	{"id": "wedding", "title": "A Mate's Wedding", "icon": "heart", "min_fame": 0, "max_fame": 35, "favour": true,
 		"text": "Your mate Gaz is getting married on Saturday and the wedding band has pulled out. He's begging. There's a tip jar.",
@@ -342,7 +357,7 @@ const FAME_EVENTS := [
 	{"id": "charity", "title": "Charity Single", "icon": "note", "min_fame": 60, "good": true,
 		"text": "{member} has been asked to front a charity single for the {city} children's hospital.",
 		"choices": [
-			{"label": "The whole band will play on it", "listeners_pct": 0.04, "fans_pct": 0.02, "happy": 2, "result": "It went top 40 and raised a fortune. Proper feel-good stuff."},
+			{"label": "The whole band will play on it", "listeners_pct": 0.04, "fans_pct": 0.02, "happy": 2, "result": "It went top 20 and raised a fortune. Proper feel-good stuff."},
 			{"label": "{member} can do it solo", "happy_member": 4, "member_fame": 3, "listeners_pct": 0.02, "result": "{member}'s version is lovely. The band are a bit jealous."}]},
 	{"id": "ward", "title": "A Quiet Visit", "icon": "smile", "min_fame": 55, "good": true,
 		"text": "{member} quietly visited a children's ward in {city} with a guitar. A nurse's photo of it has gone viral.",

@@ -38,7 +38,7 @@ static func fame_block(m: Dictionary, width: float = 150.0) -> VBoxContainer:
 	var v := UI.vbox(4)
 	var top := UI.hbox(6)
 	top.add_child(Icons.make("star", 16, UITheme.GOLD))
-	top.add_child(UI.label(fame_word(f).to_upper(), "Caps", UITheme.GOLD))
+	top.add_child(UI.label("FAME · " + fame_word(f).to_upper(), "Caps", UITheme.GOLD))
 	top.add_child(UI.spacer())
 	top.add_child(UI.label(str(int(f)), "Strong", UITheme.GOLD))
 	v.add_child(top)
@@ -51,13 +51,13 @@ static func fame_block(m: Dictionary, width: float = 150.0) -> VBoxContainer:
 
 static func fame_word(f: float) -> String:
 	if f >= 90.0:
-		return "Household name"
+		return "Icon"
 	if f >= 75.0:
-		return "Celebrity"
+		return "Celeb"
 	if f >= 55.0:
 		return "Famous"
 	if f >= 25.0:
-		return "Recognised"
+		return "Known"
 	return "Unknown"
 
 
@@ -95,7 +95,7 @@ static func market_row(m: Dictionary, action: Callable, replacing: Dictionary = 
 	id.add_child(nm)
 	var tags := UI.hbox(8)
 	tags.add_child(UI.label("Age %d" % int(m.age), "Small"))
-	tags.add_child(UI.genre_chip(m.genre))
+	tags.add_child(UI.genre_pair(m))
 	tags.add_child(UI.chip(Game.temperament_word(int(m.ease)), UITheme.MUTED))
 	id.add_child(tags)
 	var bio := UI.label(m.bio, "BodyMuted", null, true)
@@ -153,7 +153,7 @@ static func open_offer(main: Control, m: Dictionary, on_done: Callable) -> void:
 	info.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	info.add_child(UI.label("NEGOTIATION", "Caps", UITheme.ACCENT))
 	info.add_child(UI.label(m.name, "H2"))
-	info.add_child(UI.label("%s · Age %d · %s" % [InstrumentData.ROLE_NAMES[m.role], int(m.age), Data.genre_name(m.genre)], "BodyMuted"))
+	info.add_child(UI.label("%s · Age %d · Loves %s and %s" % [InstrumentData.ROLE_NAMES[m.role], int(m.age), Data.genre_name(m.genre), Data.genre_name(m.get("genre2", m.genre))], "BodyMuted"))
 	info.add_child(skill_block(m, 300))
 	top.add_child(info)
 	v.add_child(top)

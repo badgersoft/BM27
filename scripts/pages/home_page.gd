@@ -70,7 +70,7 @@ static func _focus_hint(key: String) -> String:
 	match key:
 		"promote": hint += "  This week: %s." % U.money(Game.promote_cost())
 		"rehearse": hint += "  Training at %s (×%.2f)." % [Data.practice_venue(Game.practice_idx).name, float(Data.practice_venue(Game.practice_idx).train)]
-		"write": hint += "  Song bank: %d / 100." % int(Game.songcraft)
+		"write": hint += "  %d demo songs, next one %d%% written." % [Game.demos.size(), int(Game.demo_progress * 100.0)]
 	return hint
 
 
@@ -285,7 +285,9 @@ func _band_stats_card() -> Control:
 	var c: Array = UI.card("Band stats", "amp", "Card", UITheme.GOLD)
 	var score := Game.band_score()
 	c[1].add_child(_bar_row("Live rating", score, 130.0, UITheme.ACCENT, str(int(score))))
-	c[1].add_child(_bar_row("Song bank", Game.songcraft, 100.0, UITheme.INFO, str(int(Game.songcraft))))
+	var demo_row := _bar_row("Demo songs", Game.setlist_strength(), 100.0, UITheme.INFO, str(Game.demos.size()))
+	demo_row.tooltip_text = "Songs you've written but not released. The bar is how strong a live set they make (the best ten, needs eight or more).\nSingles use your best demo; albums use your best ten."
+	c[1].add_child(demo_row)
 	var fat := float(Game.flags.get("fatigue", 0.0))
 	c[1].add_child(_bar_row("Fatigue", fat, 10.0, Color("#ff9f43"), "%d/10" % int(fat)))
 	c[1].add_child(_bar_row("Scene trend", Game.trend(), 1.3, UITheme.GOOD, "×%.2f" % Game.trend()))

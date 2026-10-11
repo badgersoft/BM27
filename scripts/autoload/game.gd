@@ -8,7 +8,7 @@ signal toast(text: String, kind: String)
 
 const SAVE_PATH := "user://bm27_save.json"
 const HOF_PATH := "user://bm27_halloffame.json"
-const SAVE_VERSION := 3
+const SAVE_VERSION := 4
 const ROLES := ["vocals", "guitar", "bass", "drums"]
 const FINAL_TOUR_MIN_WEEKS := 96
 const FINAL_TOUR_LENGTH := 24
@@ -37,7 +37,10 @@ var listeners: float:
 var buzz := 0.0
 var peak_reach := 16.0
 var formed_week := 0
-var songcraft := 5.0
+## Demo songs the band has written: each is a quality score (0-100).
+## Singles and albums are recorded from the best of them.
+var demos: Array = []
+var demo_progress := 0.0   # how far through writing the next demo (0-1)
 var gig_offers: Array = []
 var gig_cities: Dictionary = {}  # str(venue idx) -> city idx for this month's offers
 var gig_booked := -1
@@ -49,6 +52,7 @@ var releases: Array = []
 var chart_nat: Array = []
 var chart_local: Array = []
 var chart_album: Array = []
+var chart_records: Dictionary = {}   # "single"/"album" -> {"title|artist": {title, artist, weeks, first, last, player}}
 var rivals: Array = []
 var trends: Dictionary = {}
 var inbox: Array = []
@@ -88,7 +92,8 @@ func new_game() -> void:
 	buzz = 0.0
 	peak_reach = 16.0
 	formed_week = 0
-	songcraft = 5.0
+	demos = [randf_range(12.0, 22.0), randf_range(12.0, 22.0)]
+	demo_progress = 0.0
 	gig_offers = []
 	gig_cities = {}
 	gig_booked = -1
@@ -111,6 +116,7 @@ func new_game() -> void:
 	game_over = false
 	end_reason = ""
 	next_uid = 1
+	chart_records = {}
 	rivals = []
 	for r in BandData.RIVALS:
 		rivals.append({"name": r.name, "genre": r.genre, "fame": float(r.fame), "local": false})
@@ -336,12 +342,76 @@ func band_score() -> float:
 			continue
 		s += effective_skill(m) * w
 		tenure_sum += tenure(m)
-		if m.genre == genre:
-			genre_bonus += 1.5
+		genre_bonus += [0.0, 1.0, 1.5][genre_match(m)]
 	var base := s / total_w
 	var chem := minf(6.0, tenure_sum / 4.0 / 8.0)
 	var mgr := 3.0 if (manager_id != "" and manager().genre == genre) else 0.0
-	return base + chem + songcraft * 0.05 + mgr + genre_bonus
+	return base + chem + setlist_strength() * 0.06 + mgr + genre_bonus
+
+
+## 2 = their favourite genre is the band's, 1 = their second favourite is, 0 = neither.
+func genre_match(m: Dictionary, g: String = "") -> int:
+	if g == "":
+		g = genre
+	if m.genre == g:
+		return 2
+	if str(m.get("genre2", "")) == g:
+		return 1
+	return 0
+
+
+# ================================================================ demos
+
+const MAX_DEMOS := 30
+
+
+## How strong a live set the band can play from its demos (0-100):
+## the average of the best ten, scaled down if there aren't eight yet.
+func setlist_strength() -> float:
+	if demos.is_empty():
+		return 0.0
+	var best := _sorted_demos().slice(0, 10)
+	var avg := 0.0
+	for q in best:
+		avg += float(q)
+	avg /= best.size()
+	return avg * minf(1.0, demos.size() / 8.0)
+
+
+func best_demo() -> float:
+	return float(_sorted_demos()[0]) if not demos.is_empty() else 0.0
+
+
+func _sorted_demos() -> Array:
+	var d := demos.duplicate()
+	d.sort_custom(func(a, b): return float(a) > float(b))
+	return d
+
+
+## Removes the best n demos (they become a record) and returns them.
+func take_demos(n: int) -> Array:
+	var d := _sorted_demos()
+	var taken := d.slice(0, n)
+	demos = d.slice(n)
+	return taken
+
+
+func add_demo(q: float) -> void:
+	demos.append(q)
+	if demos.size() > MAX_DEMOS:
+		demos = _sorted_demos().slice(0, MAX_DEMOS)
+
+
+static func demo_word(q: float) -> String:
+	if q >= 85.0:
+		return "a future classic"
+	if q >= 70.0:
+		return "great"
+	if q >= 50.0:
+		return "strong"
+	if q >= 30.0:
+		return "decent"
+	return "rough"
 
 
 func avg_happiness() -> float:
@@ -620,9 +690,12 @@ func change_genre(new_genre: String) -> void:
 	var old := genre
 	public.genre_shock(new_genre)
 	for m in members():
-		if m.genre == new_genre:
+		var now := genre_match(m, new_genre)
+		if now == 2:
 			m.happy = clampf(float(m.happy) + 10.0, 0.0, 100.0)
-		elif m.genre == old:
+		elif now == 1:
+			m.happy = clampf(float(m.happy) + 5.0, 0.0, 100.0)
+		elif genre_match(m, old) > 0:
 			m.happy = clampf(float(m.happy) - 8.0, 0.0, 100.0)
 	genre = new_genre
 	add_inbox("New direction", "%s have gone %s. Not everyone is pleased." % [band_name, Data.genre_name(new_genre)], "swap")
@@ -783,9 +856,9 @@ func load_hall_of_fame() -> Array:
 # ================================================================ save/load
 
 const SAVE_KEYS := ["week", "manager_id", "manager_choices", "funds", "band_name", "genre", "musicians", "lineup",
-	"practice_idx", "focus", "base_city", "buzz", "peak_reach", "formed_week", "songcraft",
+	"practice_idx", "focus", "base_city", "buzz", "peak_reach", "formed_week", "demos", "demo_progress",
 	"gig_offers", "gig_cities", "gig_city", "gig_booked", "gig_month", "gig_skipped", "gig_history", "releases", "chart_nat", "chart_local",
-	"chart_album", "rivals", "trends", "inbox", "queue", "report", "stats", "flags", "last_gig_rating",
+	"chart_album", "chart_records", "rivals", "trends", "inbox", "queue", "report", "stats", "flags", "last_gig_rating",
 	"last_gig_week", "used_titles", "next_uid"]
 const INT_KEYS := ["week", "practice_idx", "formed_week", "gig_booked", "gig_month", "last_gig_week", "next_uid",
 	"base_city", "gig_city"]

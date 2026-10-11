@@ -40,6 +40,8 @@ func _ready() -> void:
 	var summary: Array = []
 	for r in runs:
 		summary.append(play_run(r))
+		if verbose:
+			_chart_check()
 	print("\nEvents seen: ", seen_events)
 	print("\n==== SUMMARY ====")
 	for s in summary:
@@ -90,4 +92,20 @@ func print_status() -> void:
 		print("   last gig: %s %s/%s (%d%%) crowd %.1f" % [lg.venue_name, U.num(lg.attendance), U.num(lg.cap), int(float(lg.fill) * 100), float(lg.crowd)])
 	print("%s fame %4.1f fans %7s lis %8s funds %8s score %5.1f happy %4.0f prac %d song %4.1f offers %s rel %d" % [
 		U.date_label(G.week), G.fame(), U.num(G.true_fans), U.num(G.listeners), U.money(G.funds), G.band_score(),
-		G.avg_happiness(), G.practice_idx, G.songcraft, offers, G.releases.size()])
+		G.avg_happiness(), G.practice_idx, float(G.demos.size()), offers, G.releases.size()])
+
+
+## Prints the top of the national chart and checks no title appears twice.
+func _chart_check() -> void:
+	var seen: Dictionary = {}
+	var dupes: Array = []
+	# Your single sits in both the national and local chart; that's fine.
+	for c in [G.chart_nat, G.chart_local, G.chart_album]:
+		for e in c:
+			var k := str(e.title).to_lower()
+			if seen.has(k) and seen[k] != e.artist:
+				dupes.append(e.title)
+			seen[k] = e.artist
+	print("   chart titles: %d unique, duplicates: %s" % [seen.size(), str(dupes)])
+	for e in G.chart_nat.slice(0, 5):
+		print("     #%d '%s' by %s (%s)" % [int(e.pos), e.title, e.artist, Charts.FEELS[int(e.get("shape", 2))].name if int(e.get("shape", -1)) >= 0 else "-"])

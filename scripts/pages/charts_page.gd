@@ -1,5 +1,5 @@
 extends Page
-## The three charts.
+## The three charts, plus the record books for weeks at No.1.
 
 static var tab := "nat"
 
@@ -7,13 +7,17 @@ static var tab := "nat"
 func build() -> void:
 	title("The Charts", "Updated every week. Your releases are highlighted in gold, local bands are tagged.", "chart")
 	var tabs := UI.hbox(6)
-	for t in [["nat", "NATIONAL TOP 40", "chart"], ["local", "LOCAL TOP 20", "home"], ["album", "ALBUM TOP 20", "disc"]]:
+	for t in [["nat", "NATIONAL TOP %d" % Charts.NAT_SIZE, "chart"], ["local", "LOCAL TOP %d" % Charts.LOCAL_SIZE, "home"],
+			["album", "ALBUM TOP %d" % Charts.ALBUM_SIZE, "disc"], ["records", "RECORDS", "trophy"]]:
 		tabs.add_child(UI.button(t[1], t[2], "SegOn" if tab == t[0] else "Seg", func():
 			tab = t[0]
 			hq.refresh()))
 	add_child(tabs)
+	if tab == "records":
+		_records()
+		return
 	var chart: Array
-	var size := 40
+	var size := Charts.NAT_SIZE
 	match tab:
 		"local":
 			chart = Game.chart_local
@@ -56,8 +60,51 @@ func _row(e: Dictionary) -> Control:
 	h.add_child(a)
 	if bool(e.local) and not mine and tab != "local":
 		h.add_child(UI.chip("Local", UITheme.INFO))
+	if tab != "local":
+		# A fixed slot, so the artist column lines up whether or not there's a badge.
+		var slot := UI.hbox(0)
+		slot.custom_minimum_size.x = 150
+		slot.alignment = BoxContainer.ALIGNMENT_END
+		if int(e.get("wk1", 0)) > 0:
+			var n1 := UI.chip("%dw at No.1" % int(e.wk1), UITheme.GOLD, false, "crown")
+			n1.tooltip_text = "Weeks at number one"
+			slot.add_child(n1)
+		h.add_child(slot)
 	var wk := UI.label("%dw" % (int(e.age) + 1), "Small")
 	wk.custom_minimum_size.x = 36
 	h.add_child(wk)
 	p.add_child(h)
 	return p
+
+
+# ---------------------------------------------------------------- records
+
+func _records() -> void:
+	var cols := columns(1.0)
+	cols[0].add_child(_record_card("Singles: most weeks at No.1", "chart", Charts.records("single")))
+	cols[1].add_child(_record_card("Albums: most weeks at No.1", "disc", Charts.records("album")))
+
+
+func _record_card(heading: String, icon: String, recs: Array) -> Control:
+	var c: Array = UI.card(heading, icon, "Card", UITheme.GOLD)
+	if recs.is_empty():
+		c[1].add_child(UI.label("No number ones yet. Give it a week.", "BodyMuted"))
+		return c[0]
+	for i in recs.size():
+		var r: Dictionary = recs[i]
+		var mine := bool(r.get("player", false))
+		var h := UI.hbox(12)
+		var n := UI.label(str(i + 1), "Strong", UITheme.GOLD if i < 3 else UITheme.MUTED)
+		n.custom_minimum_size.x = 26
+		h.add_child(n)
+		var v := UI.vbox(0)
+		v.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		var t := UI.label(r.title, "Strong", UITheme.GOLD if mine else UITheme.TEXT)
+		t.clip_text = true
+		t.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+		v.add_child(t)
+		v.add_child(UI.label("%s · %s" % [r.artist, U.date_label(int(r.first))], "Small", UITheme.GOLD if mine else UITheme.MUTED))
+		h.add_child(v)
+		h.add_child(UI.label("%d %s" % [int(r.weeks), U.plural(int(r.weeks), "week")], "Strong", UITheme.GOLD))
+		c[1].add_child(h)
+	return c[0]

@@ -72,13 +72,19 @@ func _card(mg: Dictionary) -> PanelContainer:
 	p.add_child(v)
 	var secs: Array = []
 	var top := UI.hbox(14)
-	top.add_child(Portrait.make(mg.look, 112))
+	var pic := Portrait.make(mg.look, 112)
+	pic.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
+	top.add_child(pic)
 	var idv := UI.vbox(4)
 	idv.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	var nm := UI.label(mg.name, "Title", null, true)
 	idv.add_child(nm)
 	idv.add_child(UI.label("Age %d" % int(mg.age), "Small"))
-	idv.add_child(UI.genre_chip(mg.genre, true))
+	# The genre sits at the bottom of the header, level across all cards.
+	idv.add_child(UI.spacer(false, true))
+	var gc := UI.genre_chip(mg.genre, true)
+	gc.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
+	idv.add_child(gc)
 	top.add_child(idv)
 	v.add_child(top)
 	secs.append(top)

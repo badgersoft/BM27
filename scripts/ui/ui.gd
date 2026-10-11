@@ -131,6 +131,29 @@ static func chip(text: String, color: Color, filled: bool = false, icon: String 
 	return p
 
 
+## A musician's two favourite genres. If one matches the band's genre it
+## goes first, highlighted with a heart.
+static func genre_pair(m: Dictionary) -> HBoxContainer:
+	var h := hbox(6)
+	var first: String = m.genre
+	var second: String = m.get("genre2", "")
+	var match_idx := Game.genre_match(m) if Game.genre != "" else 0
+	var order := [first, second]
+	if match_idx == 1:
+		order = [second, first]
+	for i in order.size():
+		var g: String = order[i]
+		if g == "":
+			continue
+		var hit := match_idx > 0 and i == 0
+		var c := chip(Data.genre_name(g), Data.genre_color(g), hit, "heart" if hit else "note")
+		if not hit:
+			c.modulate.a = 1.0 if i == 0 else 0.75
+		c.tooltip_text = ("Loves %s: plays better and is happier in a %s band." % [Data.genre_name(g), Data.genre_name(g)]) if hit else ("Favourite genre" if g == first else "Second favourite genre")
+		h.add_child(c)
+	return h
+
+
 static func genre_chip(genre_id: String, filled: bool = false) -> PanelContainer:
 	return chip(Data.genre_name(genre_id), Data.genre_color(genre_id), filled, "note")
 

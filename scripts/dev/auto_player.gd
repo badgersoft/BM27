@@ -57,7 +57,7 @@ func bot_week() -> void:
 		return
 	if Game.funds < 150:
 		Game.set_focus("odd_jobs" if Game.week % 2 == 0 else "busk")
-	elif Game.songcraft < 40 and Game.week % 3 == 0:
+	elif Game.demos.size() < 8 and Game.week % 3 == 0:
 		Game.set_focus("write")
 	elif Game.week % 3 == 1 and Game.funds > Game.promote_cost() * 6:
 		Game.set_focus("promote")
@@ -93,7 +93,9 @@ func bot_event(ev: Dictionary) -> void:
 				if float(MediaData.PRODUCERS[idx].fee) <= Game.funds * 0.5:
 					pick = idx
 			Game.resolve_event(ev, pick)
-		"name_release": Game.resolve_event(ev, ev.options[0])
+		"name_release":
+			ev.feel = randi() % 5
+			Game.resolve_event(ev, ev.options[0])
 		"label", "doc", "film": Game.resolve_event(ev, "accept")
 		"star": Game.resolve_event(ev, "accept" if float(ev.price) <= Game.funds * 0.5 else "decline")
 		"complaint":
