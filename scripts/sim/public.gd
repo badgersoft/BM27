@@ -123,12 +123,14 @@ func generate(seed_value: int) -> void:
 		var c: Dictionary = cities[ci]
 		var reg: Dictionary = regions[int(c.region)]
 		var flavour: Dictionary = RegionData.REGIONS[int(c.region)].cities[int(c.local_idx)].flavour
-		# Genre weights per age band for this city.
+		# Genre weights per age band for this city, with this game's drift.
+		var drift := _scene_drift(rng)
 		var weights: Array = []
 		for band in 4:
 			var w := PackedFloat32Array()
-			for g in genre_ids:
-				w.append(float(RegionData.GENRE_POP[g]) * float(flavour.get(g, 1.0)) * float(RegionData.GENRE_AGE[g][band]))
+			for gi2 in ng:
+				var g: String = genre_ids[gi2]
+				w.append(float(RegionData.GENRE_POP[g]) * float(flavour.get(g, 1.0)) * float(RegionData.GENRE_AGE[g][band]) * drift[gi2])
 			weights.append(w)
 		var hist := PackedInt32Array()
 		hist.resize(ng)
@@ -154,7 +156,7 @@ func generate(seed_value: int) -> void:
 		# The two biggest genres in town.
 		var order: Array = range(ng)
 		order.sort_custom(func(x, y): return hist[x] > hist[y])
-		c.top_genres = [genre_ids[order[0]], genre_ids[order[1]]]
+		c.top_genres = [genre_ids[order[0]], genre_ids[order[1]], genre_ids[order[2]]]
 		c.genre_share = {}
 		for gi in ng:
 			c.genre_share[genre_ids[gi]] = float(hist[gi]) / float(c.count)
@@ -188,6 +190,16 @@ func _build_geography(rng: RandomNumberGenerator) -> void:
 			cities.append(c)
 			start += count
 		regions.append(reg)
+
+
+## Each game, every city's scene shifts a little: one genre is having a
+## moment, the rest wobble. So the same city won't sound the same every time.
+func _scene_drift(rng: RandomNumberGenerator) -> PackedFloat32Array:
+	var d := PackedFloat32Array()
+	for gi in genre_ids.size():
+		d.append(rng.randf_range(0.8, 1.25))
+	d[rng.randi_range(0, genre_ids.size() - 1)] *= 1.35
+	return d
 
 
 func _build_names() -> void:

@@ -89,8 +89,9 @@ The audience is **~29,000 named people** across 9 regions, simulated individuall
 Each person has a first name, gender, age, favourite and second-favourite genre,
 gig likelihood, **variance** (appetite for new music; younger people run higher),
 **loyalty** (how much bad stuff they'll put up with; older people run higher) and a
-**fanatic** score (0–100) for your band. Each city has its own scene flavour
-(Birmingham loves metal, Manchester Britpop, Bristol EDM…).
+**fanatic** score (0–100) for your band. Each city has its own scene, led by a different genre
+(Birmingham metal, Manchester Britpop, Nottingham grunge, Belfast punk, Bristol alt rock…),
+and every game shakes the scenes up a little so no two maps sound the same.
 
 - **Fan ladder:** Not a fan → Listener → Regular listener → Fan → Super fan (needs
   six months as a fan). Real fans track how many months they've been a fan.

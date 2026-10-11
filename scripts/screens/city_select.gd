@@ -56,6 +56,11 @@ func _city_button(ci: int) -> Button:
 	var n := UI.label(city.name, "Strong", col)
 	n.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	h.add_child(n)
+	# The city's biggest genre at a glance.
+	var top_g: String = city.top_genres[0]
+	var gl := UI.label(Data.genre_name(top_g).to_upper(), "Caps", Color("#140808") if on else Data.genre_color(top_g))
+	gl.tooltip_text = "Most popular genre in %s" % city.name
+	h.add_child(gl)
 	h.add_child(UI.label("%s people" % U.num(city.count), "Small", col.darkened(0.2) if on else UITheme.MUTED))
 	h.add_child(UI.label(_pounds(float(city.cost)), "Strong", Color("#7a4b00") if on else UITheme.GOLD))
 	var m := UI.margin(h, 14, 0, 14, 0)
@@ -89,10 +94,16 @@ func _build_detail() -> void:
 	iv.add_child(UI.label(pub.region_name(int(city.region)).to_upper(), "Caps", UITheme.ACCENT))
 	var nm := UI.label(city.name, "H2")
 	iv.add_child(nm)
-	var scene := UI.hbox(8)
+	# Wraps on narrow screens rather than pushing the page wider.
+	var scene := HFlowContainer.new()
+	scene.add_theme_constant_override("h_separation", 8)
+	scene.add_theme_constant_override("v_separation", 4)
 	scene.add_child(UI.label("THE SCENE", "Caps"))
 	for g in city.top_genres:
-		scene.add_child(UI.genre_chip(g))
+		var chip := UI.genre_chip(g)
+		chip.tooltip_text = "%d%% name it their favourite" % int(round(float(city.genre_share.get(g, 0.0)) * 100.0))
+		scene.add_child(chip)
+		scene.add_child(UI.label("%d%%" % int(round(float(city.genre_share.get(g, 0.0)) * 100.0)), "Small"))
 	iv.add_child(scene)
 	var share := float(city.genre_share.get(mg.genre, 0.0)) * 100.0
 	iv.add_child(UI.label("%d%% of locals name %s as their favourite genre (%s's choice)." % [int(round(share)), Data.genre_name(mg.genre), mg.short], "BodyMuted", null, true))

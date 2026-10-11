@@ -5,66 +5,69 @@ extends RefCounted
 ## 3,000-strong City of London.
 ##
 ## size: population multiplier (1.0 = ~1,000 people).
-## flavour: genre popularity multipliers for the local music scene.
+## flavour: genre popularity multipliers for the local music scene. Every
+## city leads with something different; each game also shakes the scenes up
+## a little (see Public._scene_drift).
 
 const BASE_POP := 1000
 const LONDON_POP := 3000   # give or take 10%, different each game
 
 const REGIONS := [
 	{"id": "nw", "name": "Northwest England", "short": "North West", "cities": [
-		{"name": "Manchester", "size": 1.4, "flavour": {"britpop": 1.9, "indie": 1.6, "altrock": 1.2}},
-		{"name": "Liverpool", "size": 1.4, "flavour": {"britpop": 1.7, "indie": 1.4, "rock": 1.2}},
-		{"name": "Preston", "size": 1.0, "flavour": {"rock": 1.2, "punk": 1.2}},
+		{"name": "Manchester", "size": 1.4, "flavour": {"britpop": 2.2, "indie": 1.6, "rock": 0.8}},
+		{"name": "Liverpool", "size": 1.4, "flavour": {"britpop": 1.6, "rock": 1.5, "indie": 1.2, "metal": 0.7}},
+		{"name": "Preston", "size": 1.0, "flavour": {"punk": 1.8, "grunge": 1.3, "indie": 0.8}},
 	]},
 	{"id": "ne", "name": "Northeast England", "short": "North East", "cities": [
-		{"name": "Newcastle", "size": 1.2, "flavour": {"rock": 1.4, "indie": 1.3, "metal": 1.2}},
-		{"name": "Sunderland", "size": 1.0, "flavour": {"indie": 1.3, "britpop": 1.2}},
-		{"name": "Middlesbrough", "size": 1.0, "flavour": {"rock": 1.3, "punk": 1.2}},
+		{"name": "Newcastle", "size": 1.2, "flavour": {"rock": 1.8, "metal": 1.4, "britpop": 0.8}},
+		{"name": "Sunderland", "size": 1.0, "flavour": {"indie": 1.7, "britpop": 1.4, "rock": 0.8}},
+		{"name": "Middlesbrough", "size": 1.0, "flavour": {"metal": 1.7, "punk": 1.4, "indie": 0.8}},
 	]},
 	{"id": "mid", "name": "Midlands", "short": "Midlands", "cities": [
-		{"name": "Birmingham", "size": 1.4, "flavour": {"metal": 2.2, "rock": 1.4, "indie": 1.2}},
-		{"name": "Nottingham", "size": 1.0, "flavour": {"indie": 1.3, "punk": 1.2}},
-		{"name": "Leicester", "size": 1.0, "flavour": {"indie": 1.3, "altrock": 1.2}},
+		{"name": "Birmingham", "size": 1.4, "flavour": {"metal": 2.4, "rock": 1.3, "indie": 0.7}},
+		{"name": "Nottingham", "size": 1.0, "flavour": {"grunge": 2.2, "punk": 1.4, "rock": 0.8}},
+		{"name": "Leicester", "size": 1.0, "flavour": {"altrock": 1.8, "indie": 1.3, "rock": 0.8}},
 	]},
 	{"id": "se", "name": "Southeast England", "short": "South East", "cities": [
-		{"name": "Brighton", "size": 1.0, "flavour": {"indie": 1.5, "altrock": 1.4}},
-		{"name": "Southampton", "size": 1.0, "flavour": {"punk": 1.3, "rock": 1.1}},
-		{"name": "Portsmouth", "size": 1.0, "flavour": {"punk": 1.3, "rock": 1.2}},
+		{"name": "Brighton", "size": 1.0, "flavour": {"indie": 1.9, "altrock": 1.5, "metal": 0.6}},
+		{"name": "Southampton", "size": 1.0, "flavour": {"punk": 1.8, "grunge": 1.3, "britpop": 0.8}},
+		{"name": "Portsmouth", "size": 1.0, "flavour": {"rock": 1.5, "punk": 1.5, "indie": 0.8}},
 	]},
 	{"id": "sw", "name": "Southwest England", "short": "South West", "cities": [
-		{"name": "Bristol", "size": 1.0, "flavour": {"indie": 1.9, "altrock": 1.3}},
-		{"name": "Plymouth", "size": 1.0, "flavour": {"rock": 1.2, "punk": 1.2}},
-		{"name": "Bournemouth", "size": 1.0, "flavour": {"rock": 1.3, "indie": 1.2}},
+		{"name": "Bristol", "size": 1.0, "flavour": {"altrock": 2.0, "grunge": 1.5, "rock": 0.8}},
+		{"name": "Plymouth", "size": 1.0, "flavour": {"grunge": 2.1, "rock": 1.3, "indie": 0.8}},
+		{"name": "Bournemouth", "size": 1.0, "flavour": {"britpop": 1.7, "rock": 1.3, "metal": 0.7}},
 	]},
 	{"id": "wal", "name": "Wales", "short": "Wales", "cities": [
-		{"name": "Cardiff", "size": 1.2, "flavour": {"rock": 1.5, "metal": 1.4, "altrock": 1.2}},
-		{"name": "Swansea", "size": 1.0, "flavour": {"rock": 1.3, "metal": 1.3}},
-		{"name": "Newport", "size": 1.0, "flavour": {"punk": 1.3, "rock": 1.2}},
+		{"name": "Cardiff", "size": 1.2, "flavour": {"rock": 1.7, "metal": 1.6, "britpop": 0.8}},
+		{"name": "Swansea", "size": 1.0, "flavour": {"metal": 1.8, "grunge": 1.3, "indie": 0.8}},
+		{"name": "Newport", "size": 1.0, "flavour": {"punk": 1.9, "altrock": 1.3, "rock": 0.8}},
 	]},
 	{"id": "ire", "name": "Ireland", "short": "Ireland", "cities": [
-		{"name": "Dublin", "size": 1.2, "flavour": {"indie": 1.5, "rock": 1.4, "altrock": 1.2}},
-		{"name": "Belfast", "size": 1.0, "flavour": {"punk": 1.6, "rock": 1.3}},
-		{"name": "Cork", "size": 1.0, "flavour": {"rock": 1.3, "indie": 1.2}},
+		{"name": "Dublin", "size": 1.2, "flavour": {"indie": 1.8, "altrock": 1.5, "metal": 0.8}},
+		{"name": "Belfast", "size": 1.0, "flavour": {"punk": 2.1, "rock": 1.3, "britpop": 0.8}},
+		{"name": "Cork", "size": 1.0, "flavour": {"rock": 1.7, "britpop": 1.3, "metal": 0.8}},
 	]},
 	{"id": "sco", "name": "Scotland", "short": "Scotland", "cities": [
-		{"name": "Glasgow", "size": 1.2, "flavour": {"indie": 1.8, "rock": 1.3, "altrock": 1.3}},
-		{"name": "Edinburgh", "size": 1.0, "flavour": {"indie": 1.3, "altrock": 1.2}},
-		{"name": "Aberdeen", "size": 1.0, "flavour": {"rock": 1.3, "metal": 1.3}},
+		{"name": "Glasgow", "size": 1.2, "flavour": {"indie": 1.8, "altrock": 1.6, "britpop": 1.2}},
+		{"name": "Edinburgh", "size": 1.0, "flavour": {"altrock": 1.7, "grunge": 1.4, "rock": 0.8}},
+		{"name": "Aberdeen", "size": 1.0, "flavour": {"metal": 1.9, "rock": 1.4, "indie": 0.8}},
 	]},
 	{"id": "lon", "name": "London", "short": "London", "cities": [
-		{"name": "City of London", "size": 3.0, "flavour": {"indie": 1.4, "punk": 1.3, "altrock": 1.2}},
+		{"name": "City of London", "size": 3.0, "flavour": {"punk": 1.4, "indie": 1.3, "britpop": 1.3, "altrock": 1.2, "grunge": 1.1, "metal": 1.1}},
 	]},
 ]
 
-## Nationwide genre popularity before local flavour and age.
-const GENRE_POP := {"rock": 1.4, "indie": 1.4, "grunge": 0.7, "metal": 0.9, "punk": 0.9,
-	"britpop": 0.9, "altrock": 1.1}
+## Nationwide genre popularity before local flavour and age. Kept fairly
+## flat so local scenes decide what a city sounds like.
+const GENRE_POP := {"rock": 1.05, "indie": 1.05, "grunge": 0.95, "metal": 0.95, "punk": 0.95,
+	"britpop": 0.95, "altrock": 1.0}
 
 ## Genre appeal by age band: [under 25, 25-39, 40-59, 60+]
 const GENRE_AGE := {
-	"rock": [0.8, 1.0, 1.3, 1.7], "indie": [1.4, 1.2, 0.8, 0.4], "grunge": [0.7, 1.2, 1.3, 0.6],
-	"metal": [1.1, 1.1, 1.0, 0.6], "punk": [1.3, 1.0, 1.0, 0.9],
-	"britpop": [0.6, 1.2, 1.5, 0.9], "altrock": [1.1, 1.3, 1.0, 0.5],
+	"rock": [0.85, 1.0, 1.2, 1.4], "indie": [1.3, 1.2, 0.85, 0.5], "grunge": [0.8, 1.25, 1.2, 0.6],
+	"metal": [1.15, 1.1, 1.0, 0.6], "punk": [1.3, 1.0, 1.0, 0.9],
+	"britpop": [0.7, 1.2, 1.4, 0.9], "altrock": [1.15, 1.3, 1.0, 0.55],
 }
 
 ## How likely each age band is to go to gigs (0-100, before personal variation).
