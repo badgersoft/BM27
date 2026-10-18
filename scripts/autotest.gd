@@ -216,7 +216,7 @@ static func _run() -> void:
 			hq.page_scroll.scroll_vertical = 520
 			await _shot("11_page_fans_b")
 	hq.open_page("band")
-	hq.page._band_treat_dialog()
+	hq.page.get_child(0)._band_treat_dialog()
 	await _shot("12_band_treat")
 	m.close_all_modals()
 	hq.open_page("home")

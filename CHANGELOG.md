@@ -1,5 +1,8 @@
 # Changelog
 
+## v0.10.1 (2026-10-18)
+- Talent page: the tags under each musician wrap, so rows fit on narrow screens (XL interface size).
+
 ## v0.10.0 (2026-10-18): Harder charts and band treats
 - Treat the whole band: a Night on the Town or a Spa Weekend (Band page).
 - Treat messages stay on screen longer; longer messages stay up longer generally.
