@@ -1,5 +1,13 @@
 # Changelog
 
+## v0.11.0 (2026-10-18): Albums, archive tabs and fewer star cameos
+- Albums are harder to chart (a first album might just scrape the Top 20, or miss), and sell about a fifth as many copies as a single at five times the price.
+- A Top 10 single revives your latest album, sending it back up the album chart.
+- The release archive has Singles and Albums tabs, and marks releases that didn't chart.
+- Naming a release: suggestions are selectable (the first is picked already) and RELEASE IT always works; the dialog is more compact so every suggestion fits.
+- Stars ask to join far less often; documentary and concert film offers only come after five years together, and rarely.
+- Top fans show a surname initial ("Dave C").
+
 ## v0.10.1 (2026-10-18)
 - Talent page: the tags under each musician wrap, so rows fit on narrow screens (XL interface size).
 

@@ -58,16 +58,22 @@ static func roll_weekly(_rep: Dictionary) -> void:
 			var idx: int = labels[maxi(0, labels.size() - 1 - randi_range(0, 1))]
 			Game.queue.append({"type": "label", "label": idx})
 	# A star wants to join.
-	if _decisions_queued() < 2 and f >= 55.0 and wk - int(flags.last_star_week) >= 12 and randf() < 0.05:
+	# Rare: a star approaches you every year or two at most.
+	if _decisions_queued() < 2 and f >= 55.0 and wk - int(flags.last_star_week) >= 40 and randf() < 0.015:
 		var ev := _star_offer()
 		if not ev.is_empty():
 			flags.last_star_week = wk
 			Game.queue.append(ev)
-	# Documentary and concert film.
-	if _decisions_queued() < 2 and not bool(flags.doc_done) and int(flags.famous_weeks) >= 24 and randf() < 0.08:
+	# Documentary and concert film: only for bands that have been around five
+	# years or more, and not often (at least half a year between offers).
+	var screen_ok := Game.band_age() >= 5 * U.WEEKS_PER_YEAR and wk - int(flags.get("last_media_week", -99)) >= 26
+	if screen_ok and _decisions_queued() < 2 and not bool(flags.doc_done) and int(flags.famous_weeks) >= 24 and randf() < 0.03:
+		flags.last_media_week = wk
 		var fee := roundf((250000.0 + f * 8000.0) * randf_range(0.8, 1.3) / 1000.0) * 1000.0
 		Game.queue.append({"type": "doc", "fee": fee, "title": Game.cityize(MediaData.DOC_TITLES.pick_random().replace("{band}", Game.band_name))})
-	if _decisions_queued() < 2 and not bool(flags.film_done) and f >= 72.0 and int(Game.stats.best_venue) >= 11 and randf() < 0.1:
+	if screen_ok and int(flags.get("last_media_week", -99)) != wk and _decisions_queued() < 2 and not bool(flags.film_done) \
+			and f >= 72.0 and int(Game.stats.best_venue) >= 11 and randf() < 0.03:
+		flags.last_media_week = wk
 		var fee2 := roundf((500000.0 + f * 12000.0) * randf_range(0.8, 1.3) / 1000.0) * 1000.0
 		var vname: String = Data.gig_venue(int(Game.stats.best_venue)).name
 		Game.queue.append({"type": "film", "fee": fee2, "venue": vname,
@@ -556,6 +562,7 @@ static func _resolve_name(ev: Dictionary, title: Variant) -> Dictionary:
 ## Per feel (Charts.FEELS order): chart power, new listeners, and who they are
 ## (breadth: +1 catchy and broad .. -1 genre lovers only).
 const FEEL_POWER := [1.2, 1.1, 1.0, 0.95, 1.0]
+const ALBUM_POWER := 0.6
 const FEEL_LISTENERS := [1.6, 1.3, 1.0, 0.8, 0.7]
 const FEEL_BREADTH := [1.0, 0.5, 0.0, -0.5, -1.0]
 
@@ -572,6 +579,10 @@ static func release_now(data: Dictionary) -> Dictionary:
 	if feel == 4:
 		# Love it or hate it.
 		power *= randf_range(0.5, 1.6)
+	if data.kind == "album":
+		# Albums are a bigger ask than a single: a first album might scrape
+		# the lower reaches of the chart, or miss it altogether.
+		power *= ALBUM_POWER
 	var rel := {
 		"id": Game.uid("r"), "kind": data.kind, "title": data.title, "week": Game.week, "quality": q, "it": it,
 		"producer": data.producer, "nat_base": q * national_reach(f) * it * (0.85 + 0.15 * Game.trend()) * power,

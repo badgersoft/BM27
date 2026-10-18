@@ -1,5 +1,8 @@
 extends Page
-## The archive: every single and album you've released, for posterity.
+## The archive: every single and album you've released, for posterity,
+## on separate Singles and Albums tabs.
+
+static var tab := "singles"
 
 
 func build() -> void:
@@ -14,7 +17,21 @@ func build() -> void:
 		c[1].add_child(UI.icon_label("vinyl", "Nothing released yet. Once you're getting noticed, record producers will come calling.", UITheme.MUTED, "Body", 22))
 		add_child(c[0])
 		return
-	for r in Game.releases:
+	var singles: Array = Game.releases.filter(func(r): return r.kind != "album")
+	var albums: Array = Game.releases.filter(func(r): return r.kind == "album")
+	var tabs := UI.hbox(6)
+	for t in [["singles", "SINGLES (%d)" % singles.size(), "vinyl"], ["albums", "ALBUMS (%d)" % albums.size(), "disc"]]:
+		tabs.add_child(UI.button(t[1], t[2], "SegOn" if tab == t[0] else "Seg", func():
+			tab = t[0]
+			hq.refresh()))
+	add_child(tabs)
+	var list: Array = albums if tab == "albums" else singles
+	if list.is_empty():
+		var c2: Array = UI.card("", "", "CardFlat")
+		var msg := "No albums yet. Two top 20 singles and the record labels come knocking." if tab == "albums" else "No singles yet."
+		c2[1].add_child(UI.icon_label("disc" if tab == "albums" else "vinyl", msg, UITheme.MUTED, "Body", 22, true))
+		add_child(c2[0])
+	for r in list:
 		add_child(_release_card(r))
 
 
@@ -29,6 +46,8 @@ func _release_card(r: Dictionary) -> Control:
 	tr.add_child(UI.chip("Album" if album else "Single", UITheme.GOLD if album else UITheme.INFO, album))
 	if r.status == "charting":
 		tr.add_child(UI.chip("In the charts", UITheme.GOOD))
+	elif int(r.peak_nat) == 0 and (album or int(r.peak_local) == 0):
+		tr.add_child(UI.chip("Didn't chart", UITheme.MUTED))
 	tr.add_child(UI.genre_chip(r.get("genre", Game.genre)))
 	if r.has("feel"):
 		tr.add_child(UI.chip(Charts.FEELS[clampi(int(r.feel), 0, Charts.FEELS.size() - 1)].name, UITheme.MUTED))

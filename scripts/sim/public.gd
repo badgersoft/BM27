@@ -875,8 +875,18 @@ func apply_gig(people: PackedInt32Array, admit: float, crowd: float, venue_city:
 
 # ============================================================== reporting
 
+## Surname initials, weighted roughly like British surnames (lots of S, B,
+## H, M; hardly any Q or Z).
+const INITIALS := "SSSSSSSSSSBBBBBBBBBHHHHHHHHMMMMMMMMCCCCCCCWWWWWWWPPPPPGGGGGRRRRRTTTTTDDDDLLLLJJJKKKAAAFFFEENNOYIV"
+
+
+## A person's surname initial, fixed for the game: "Dave C".
+func initial(i: int) -> String:
+	return INITIALS[absi(hash(i * 7919 + seed_val)) % INITIALS.length()]
+
+
 func person(i: int) -> Dictionary:
-	return {"id": i, "name": names[name_idx[i]], "gender": "f" if gender[i] == 0 else "m", "age": int(age[i]),
+	return {"id": i, "name": "%s %s" % [names[name_idx[i]], initial(i)], "gender": "f" if gender[i] == 0 else "m", "age": int(age[i]),
 		"city": city_name(int(city[i])), "region": region_name(region_of(int(city[i]))),
 		"fav": genre_ids[g1[i]], "second": genre_ids[g2[i]], "gig": int(gig[i]), "variance": int(variance[i]),
 		"loyalty": int(loyalty[i]), "fanatic": fanatic[i], "tier": int(tier[i]), "months": fan_weeks[i] / 4}

@@ -445,7 +445,7 @@ static func _name_release(main: Control, ev: Dictionary, done: Callable) -> void
 	ends.add_child(UI.label("UP TO 11", "Caps"))
 	fv.add_child(ends)
 	var fdesc := UI.label("", "Small", UITheme.TEXT, true)
-	fdesc.custom_minimum_size.y = fdesc.get_line_height() * 3 + 4
+	fdesc.custom_minimum_size.y = fdesc.get_line_height() * 2 + 4
 	fv.add_child(fdesc)
 	var show_feel := func(val: float):
 		ev.feel = int(val)
@@ -458,34 +458,52 @@ static func _name_release(main: Control, ev: Dictionary, done: Callable) -> void
 	var grid := GridContainer.new()
 	grid.columns = 1
 	grid.add_theme_constant_override("v_separation", 8)
+	# Suggestions are picked (the first is picked already), then released with
+	# RELEASE IT; typing your own title overrides the pick.
+	var pick := {"title": str(ev.options[0]) if not ev.options.is_empty() else ""}
+	var buttons: Array = []
+	var le := LineEdit.new()
+	var restyle := func():
+		for b in buttons:
+			var on: bool = le.text.strip_edges() == "" and b.get_meta("title") == pick.title
+			b.theme_type_variation = "SegOn" if on else "Seg"
+			b.icon = Icons.tex("check" if on else "note")
 	for t in ev.options:
-		var b := UI.button("'%s'" % t, "note", "", func(): _choose(main, m, ev, t, done))
-		b.add_theme_font_size_override("font_size", 21)
+		var b := UI.button("'%s'" % t, "note", "Seg", func():
+			pick.title = t
+			le.text = ""
+			restyle.call())
+		b.set_meta("title", t)
+		b.add_theme_font_size_override("font_size", 20)
 		b.alignment = HORIZONTAL_ALIGNMENT_LEFT
-		b.custom_minimum_size.y = 54
+		b.custom_minimum_size.y = 46
 		b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		buttons.append(b)
 		grid.add_child(b)
 	v.add_child(grid)
 	var row := UI.hbox(10)
-	var le := LineEdit.new()
-	le.placeholder_text = "Your own title..."
+	le.placeholder_text = "Or type your own title..."
 	le.max_length = 48
 	le.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	le.custom_minimum_size.y = 50
+	le.text_changed.connect(func(_t): restyle.call())
 	row.add_child(le)
 	# Your own title can't be one that's already in the charts or released.
-	var submit := func(t: String):
-		t = U.title_case(t)
+	var submit := func(_t := ""):
+		var t := U.title_case(le.text)
+		if t == "":
+			t = str(pick.title)
 		if t == "":
 			return
-		if Charts.titles_in_use().has(t.to_lower()):
+		if le.text.strip_edges() != "" and Charts.titles_in_use().has(t.to_lower()):
 			main.show_toast("'%s' is already taken. Try something else." % t, "bad")
 			return
 		_choose(main, m, ev, t, done)
-	var go := UI.button("RELEASE IT", "check", "Gold", func(): submit.call(le.text))
+	var go := UI.button("RELEASE IT", "check", "Gold", func(): submit.call())
 	row.add_child(go)
 	le.text_submitted.connect(submit)
 	v.add_child(row)
+	restyle.call()
 	m = main.open_modal(v, 720)
 
 
