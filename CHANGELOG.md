@@ -1,5 +1,8 @@
 # Changelog
 
+## v0.9.1 (2026-10-18)
+- The commit-message hook no longer stamps merge commits.
+
 ## v0.9.0 (2026-10-18): Longer careers and a lot more variety
 - The Final Tour is optional and only available after ten years together; bands can carry on for decades.
 - Small venues (village hall, school hall, pub, student union) have different names in each city and each game.
