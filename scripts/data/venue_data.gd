@@ -81,3 +81,92 @@ const GIGS := [
 		"ticket": 100.0, "bar": 10.0, "merch": 22.0, "draw": 50000, "colour": "#ef233c",
 		"desc": "The twin towers of rock. The peak. The dream."},
 ]
+
+## Small venues get a different name in each city (see Data.local_venue_name).
+## "any" names can turn up anywhere; region keys add local flavour.
+const LOCAL_NAMES := {
+	"village": {
+		"any": [
+			"St. Agnes Village Hall", "St Benedict's Hall", "Holy Mary Church Hall", "St Michael's Church Hall",
+			"St Peter's Parish Hall", "All Saints Village Hall", "Holy Trinity Hall", "St John's Church Hall",
+			"St Margaret's Parish Hall", "Christ Church Hall", "St Luke's Hall", "St Nicholas Hall",
+			"St Bartholomew's Parish Hall", "{city} Methodist Hall", "Sacred Heart Parish Hall", "{city} Community Hall",
+		],
+		"nw": [
+			"St Oswald's Hall", "St Wilfrid's Church Hall", "St Kentigern's Parish Hall",
+		],
+		"ne": [
+			"St Cuthbert's Hall", "St Aidan's Church Hall", "St Bede's Parish Hall",
+		],
+		"mid": [
+			"St Chad's Hall", "St Werburgh's Church Hall", "St Alkmund's Parish Hall",
+		],
+		"se": [
+			"St Augustine's Hall", "St Swithun's Church Hall", "St Edmund's Parish Hall",
+		],
+		"sw": [
+			"St Piran's Hall", "St Petroc's Church Hall", "St Aldhelm's Parish Hall",
+		],
+		"wal": [
+			"St David's Church Hall", "St Teilo's Hall", "Capel Bethesda Hall",
+		],
+		"ire": [
+			"St Brigid's Parish Hall", "St Patrick's Hall", "St Kevin's Church Hall",
+		],
+		"sco": [
+			"St Columba's Hall", "St Ninian's Church Hall", "St Mungo's Parish Hall",
+		],
+		"lon": [
+			"St Mary-le-Bow Hall", "St Pancras Church Hall", "St Botolph's Hall",
+		],
+	},
+	"school": {
+		"any": [
+			"{city} High School Hall", "St Aidan's School Hall", "{city} Academy Sports Hall", "{city} Comprehensive Hall",
+			"St Joseph's School Hall", "{city} Grammar School Hall", "{city} Community College Hall",
+			"Oakfield Primary School Hall", "{city} Sixth Form Hall", "Our Lady's Catholic School Hall",
+		],
+	},
+	"anchor": {
+		"any": [
+			"The Rusty Anchor", "The Red Lion Back Room", "The Nag's Head", "The Crown & Kettle",
+			"The King's Arms Function Room", "The White Hart", "The Black Dog", "The Fox & Hounds Back Room", "The Royal Oak",
+			"The Plough", "The Wheatsheaf Snug", "The Dog & Duck", "The Coach & Horses", "The Railway Tavern",
+			"The Prince Albert Upstairs", "The Jolly Sailor",
+		],
+		"nw": [
+			"The Mersey Arms", "The Lancashire Lad",
+		],
+		"ne": [
+			"The Tyne Bridge Tavern", "The Pitman's Arms",
+		],
+		"mid": [
+			"The Narrowboat", "The Black Country Arms",
+		],
+		"se": [
+			"The Hop Pickers", "The Smuggler's Rest",
+		],
+		"sw": [
+			"The Cider Press", "The Tinner's Arms",
+		],
+		"wal": [
+			"The Dragon's Rest", "The Colliers' Arms",
+		],
+		"ire": [
+			"The Shamrock Snug", "The Fiddler's Elbow",
+		],
+		"sco": [
+			"The Thistle Bar", "The Bothy Bar",
+		],
+		"lon": [
+			"The Pearly King", "The Jellied Eel",
+		],
+	},
+	"bunker": {
+		"any": [
+			"Student Union: The Bunker", "{city} Uni: The Basement", "Student Union: The Cellar Bar", "{city} SU: The Hub",
+			"Student Union: The Pit", "{city} Uni: The Refectory", "Student Union: The Old Library Bar",
+			"{city} Poly: The Common Room",
+		],
+	},
+}

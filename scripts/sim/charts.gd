@@ -1,12 +1,12 @@
 class_name Charts
 extends RefCounted
-## Three living charts: National Top 20 singles, the Local Top 10 for
+## Three living charts: National Top 30 singles, the Local Top 10 for
 ## your home scene, and the National Album Top 20. Rival releases arrive every
 ## week, peak and fade; your releases compete against them on "power".
 ## Each entry has a "shape" (the song's feel, see FEELS) that sets how fast it
 ## climbs and how long it lasts.
 
-const NAT_SIZE := 20
+const NAT_SIZE := 30
 const LOCAL_SIZE := 10
 const ALBUM_SIZE := 20
 
@@ -135,11 +135,11 @@ static func _rival_entry(chart: Array, local: bool, base: float, age: int, album
 
 
 static func _new_nat_base() -> float:
-	return 8.0 + 92.0 * pow(randf(), 2.2)
+	return 12.0 + 88.0 * pow(randf(), 1.7)
 
 
 static func _new_local_base() -> float:
-	return 4.0 + 46.0 * pow(randf(), 1.6)
+	return 6.0 + 58.0 * pow(randf(), 1.4)
 
 
 static func init_charts() -> void:
@@ -235,6 +235,35 @@ static func _find_pos(chart: Array, rel_id: String) -> int:
 	return 0
 
 
+## A big single sends new fans looking for your older work: the latest album
+## gets a second wind (back into the album chart if it had dropped out).
+static func _revive_album(single: Dictionary, nat: int, rep: Dictionary) -> void:
+	if bool(single.get("revived", false)):
+		return
+	var albums: Array = Game.releases.filter(func(r): return r.kind == "album" and int(r.week) < int(single.week))
+	if albums.is_empty():
+		return
+	single.revived = true
+	var alb: Dictionary = albums[0]   # releases are newest first
+	var boost := float(alb.nat_base) * (0.5 + (11 - nat) * 0.06)
+	var entry: Dictionary = {}
+	for e in Game.chart_album:
+		if e.rel == alb.id:
+			entry = e
+	if entry.is_empty():
+		entry = {"title": alb.title, "artist": Game.band_name, "base": boost, "power": boost, "age": 2, "pos": 0, "last": 0,
+			"peak": 0, "player": true, "rel": alb.id, "local": true, "shape": int(alb.get("feel", 2)), "sleeper": -1, "wk1": 0}
+		Game.chart_album.append(entry)
+	else:
+		entry.base = maxf(float(entry.base), boost)
+		entry.age = mini(int(entry.age), 2)
+	alb.status = "charting"
+	alb.out_week = -1
+	alb.revived_week = Game.week   # gets its chart position next week
+	WeekSim.line(rep, "'%s' is sending fans back to your album '%s'. It's selling again!" % [single.title, alb.title], "good")
+	Game.add_inbox("'%s' is back" % alb.title, "With '%s' in the Top 10, new fans are digging out your album '%s'." % [single.title, alb.title], "disc", "good")
+
+
 static func _update_player_releases(advance: bool, rep: Dictionary) -> void:
 	for rel in Game.releases:
 		if rel.status == "gone":
@@ -253,6 +282,15 @@ static func _update_player_releases(advance: bool, rep: Dictionary) -> void:
 		rel.last_local = int(rel.local_pos)
 		rel.nat_pos = nat
 		rel.local_pos = loc
+		if advance and not album and nat > 0 and nat <= 10:
+			_revive_album(rel, nat, rep)
+		# New entries (positions only exist once a week of sales is in).
+		if advance and int(rel.last_nat) == 0 and nat > 0:
+			WeekSim.line(rep, "'%s' entered the national %s chart at number %d!" % [rel.title, "album" if album else "singles", nat], "good")
+		elif advance and not album and int(rel.last_local) == 0 and loc > 0 and nat == 0:
+			WeekSim.line(rep, "'%s' entered the local chart at number %d." % [rel.title, loc], "good")
+		elif advance and int(rel.weeks_on) == 0 and nat == 0 and loc == 0 and rel.status == "charting":
+			WeekSim.line(rep, "'%s' didn't sell enough to chart this week." % rel.title, "bad")
 		if nat > 0 and (int(rel.peak_nat) == 0 or nat < int(rel.peak_nat)):
 			rel.peak_nat = nat
 		if loc > 0 and (int(rel.peak_local) == 0 or loc < int(rel.peak_local)):
@@ -271,9 +309,9 @@ static func _update_player_releases(advance: bool, rep: Dictionary) -> void:
 		# Sales for the week just gone.
 		var sales := 0.0
 		if nat > 0:
-			sales = (60000.0 if album else 120000.0) / pow(nat, 1.1) * randf_range(0.9, 1.1)
+			sales = weekly_sales(nat, album, false) * randf_range(0.9, 1.1)
 		elif loc > 0:
-			sales = 900.0 / pow(loc, 0.8) * randf_range(0.9, 1.1)
+			sales = weekly_sales(loc, false, true) * randf_range(0.9, 1.1)
 		var money := sales * (ALBUM_PRICE if album else SINGLE_PRICE) * Settings.income_mult()
 		rel.sales = int(sales)
 		rel.total_sales = int(rel.total_sales) + int(sales)
@@ -287,11 +325,12 @@ static func _update_player_releases(advance: bool, rep: Dictionary) -> void:
 				pub.unlock(2)
 				pub.pulse(Public.SCOPE_NATIONAL, 0.004 * float(NAT_SIZE + 1 - nat) / NAT_SIZE)
 			var feel := int(rel.get("feel", 2))
-			pub.add_listeners(sales * (0.16 if album else 0.08) * Events.FEEL_LISTENERS[feel], Public.SCOPE_NATIONAL if nat > 0 else Public.SCOPE_REGION, Events.FEEL_BREADTH[feel])
-			pub.deepen(sales * (0.005 if album else 0.002))
+			pub.add_listeners(sales * (0.4 if album else 0.08) * Events.FEEL_LISTENERS[feel], Public.SCOPE_NATIONAL if nat > 0 else Public.SCOPE_REGION, Events.FEEL_BREADTH[feel])
+			pub.deepen(sales * (0.012 if album else 0.002))
 			WeekSim.line(rep, "'%s' sold %s copies (%s)." % [rel.title, U.num(sales), U.money(money)], "good")
 		# Out of the charts: show it for one more week, then retire it.
-		if rel.status == "charting" and nat == 0 and loc == 0 and Game.week > int(rel.week):
+		if rel.status == "charting" and nat == 0 and loc == 0 and Game.week > int(rel.week) \
+				and int(rel.get("revived_week", -1)) != Game.week:
 			rel.status = "out"
 			rel.out_week = Game.week
 		elif rel.status == "out" and Game.week > int(rel.out_week):
@@ -312,7 +351,19 @@ static func add_release(rel: Dictionary) -> void:
 		le.base = float(rel.local_base)
 		le.power = float(rel.local_base) * curve(0, shape)
 		Game.chart_local.append(le)
-	weekly_update(false)
+	# No position yet: the release charts once its first week's sales are in.
+
+
+## Copies a chart position sells in a week (what decides the position, so
+## it's also shown for rivals on the chart page).
+static func weekly_sales(pos: int, album: bool, local: bool) -> float:
+	if pos <= 0:
+		return 0.0
+	if local:
+		return 900.0 / pow(pos, 0.8)
+	# Albums sell far fewer copies than singles (about a fifth), but each
+	# one is worth five times as much.
+	return (30000.0 if album else 160000.0) / pow(pos, 0.97)
 
 
 ## Local scene singles in the charts right now (for the HQ chart panel).

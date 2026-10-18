@@ -58,20 +58,26 @@ static func roll_weekly(_rep: Dictionary) -> void:
 			var idx: int = labels[maxi(0, labels.size() - 1 - randi_range(0, 1))]
 			Game.queue.append({"type": "label", "label": idx})
 	# A star wants to join.
-	if _decisions_queued() < 2 and f >= 55.0 and wk - int(flags.last_star_week) >= 12 and randf() < 0.05:
+	# Rare: a star approaches you every year or two at most.
+	if _decisions_queued() < 2 and f >= 55.0 and wk - int(flags.last_star_week) >= 40 and randf() < 0.015:
 		var ev := _star_offer()
 		if not ev.is_empty():
 			flags.last_star_week = wk
 			Game.queue.append(ev)
-	# Documentary and concert film.
-	if _decisions_queued() < 2 and not bool(flags.doc_done) and int(flags.famous_weeks) >= 24 and randf() < 0.08:
+	# Documentary and concert film: only for bands that have been around five
+	# years or more, and not often (at least half a year between offers).
+	var screen_ok := Game.band_age() >= 5 * U.WEEKS_PER_YEAR and wk - int(flags.get("last_media_week", -99)) >= 26
+	if screen_ok and _decisions_queued() < 2 and not bool(flags.doc_done) and int(flags.famous_weeks) >= 24 and randf() < 0.03:
+		flags.last_media_week = wk
 		var fee := roundf((250000.0 + f * 8000.0) * randf_range(0.8, 1.3) / 1000.0) * 1000.0
-		Game.queue.append({"type": "doc", "fee": fee, "title": MediaData.DOC_TITLES.pick_random().replace("{band}", Game.band_name)})
-	if _decisions_queued() < 2 and not bool(flags.film_done) and f >= 72.0 and int(Game.stats.best_venue) >= 11 and randf() < 0.1:
+		Game.queue.append({"type": "doc", "fee": fee, "title": Game.cityize(MediaData.DOC_TITLES.pick_random().replace("{band}", Game.band_name))})
+	if screen_ok and int(flags.get("last_media_week", -99)) != wk and _decisions_queued() < 2 and not bool(flags.film_done) \
+			and f >= 72.0 and int(Game.stats.best_venue) >= 11 and randf() < 0.03:
+		flags.last_media_week = wk
 		var fee2 := roundf((500000.0 + f * 12000.0) * randf_range(0.8, 1.3) / 1000.0) * 1000.0
 		var vname: String = Data.gig_venue(int(Game.stats.best_venue)).name
 		Game.queue.append({"type": "film", "fee": fee2, "venue": vname,
-			"title": MediaData.FILM_TITLES.pick_random().replace("{band}", Game.band_name).replace("{venue}", vname)})
+			"title": Game.cityize(MediaData.FILM_TITLES.pick_random().replace("{band}", Game.band_name).replace("{venue}", vname))})
 	# Famous members get up to things, good and bad.
 	if _decisions_queued() < 2 and wk - int(flags.get("last_fame_week", -99)) >= 4:
 		var ev3 := _fame_event()
@@ -548,16 +554,15 @@ static func _resolve_name(ev: Dictionary, title: Variant) -> Dictionary:
 		Game.flags.pending_album = data
 		Game.add_inbox("Into the studio", "Recording of '%s' has begun with %s. Out in 3 weeks." % [t, ev.producer], "disc")
 		return _res("Recording '%s'" % t, "The band have decamped to the studio with %s. The album will be released in 3 weeks." % ev.producer, "disc", "good")
-	var rel := release_now(data)
-	var pos_txt := "It's entered the national chart at number %d!" % int(rel.nat_pos) if int(rel.nat_pos) > 0 else "It hasn't cracked the national Top 20 yet."
-	if int(rel.local_pos) > 0:
-		pos_txt += " Local chart: number %d." % int(rel.local_pos)
+	release_now(data)
+	var pos_txt := "It's in the shops now. The charts are decided by sales, so you'll see where it lands once the first week's sales are in, in next week's report."
 	return _res("'%s' is out!" % t, "Produced by %s.\n\n%s" % [ev.producer, pos_txt], "vinyl", "good")
 
 
 ## Per feel (Charts.FEELS order): chart power, new listeners, and who they are
 ## (breadth: +1 catchy and broad .. -1 genre lovers only).
 const FEEL_POWER := [1.2, 1.1, 1.0, 0.95, 1.0]
+const ALBUM_POWER := 0.6
 const FEEL_LISTENERS := [1.6, 1.3, 1.0, 0.8, 0.7]
 const FEEL_BREADTH := [1.0, 0.5, 0.0, -0.5, -1.0]
 
@@ -574,10 +579,14 @@ static func release_now(data: Dictionary) -> Dictionary:
 	if feel == 4:
 		# Love it or hate it.
 		power *= randf_range(0.5, 1.6)
+	if data.kind == "album":
+		# Albums are a bigger ask than a single: a first album might scrape
+		# the lower reaches of the chart, or miss it altogether.
+		power *= ALBUM_POWER
 	var rel := {
 		"id": Game.uid("r"), "kind": data.kind, "title": data.title, "week": Game.week, "quality": q, "it": it,
 		"producer": data.producer, "nat_base": q * national_reach(f) * it * (0.85 + 0.15 * Game.trend()) * power,
-		"local_base": q * (0.5 + f / 40.0) * it * power, "feel": feel,
+		"local_base": q * (0.35 + f / 70.0) * it * power, "feel": feel,
 		# Now and then a catchy song comes roaring back weeks later.
 		"sleeper": randi_range(7, 12) if feel == 0 and randf() < 0.06 else -1,
 		"nat_pos": 0, "local_pos": 0, "last_nat": 0, "last_local": 0,
@@ -601,7 +610,9 @@ static func release_now(data: Dictionary) -> Dictionary:
 ## Bands nobody outside their home town knows struggle to chart nationally.
 static func national_reach(f: float) -> float:
 	var spread: float = [0.45, 0.75, 1.0][clampi(Game.reach_stage(), 0, 2)]
-	return (0.05 + pow(f / 100.0, 1.5) * 1.4) * spread
+	# Tops out around the biggest rival records, so even a famous band needs
+	# a strong song (and some luck) for a No.1.
+	return (0.04 + pow(f / 100.0, 1.5) * 0.9) * spread
 
 
 static func _resolve_star(ev: Dictionary, choice: Variant) -> Dictionary:

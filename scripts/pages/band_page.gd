@@ -8,6 +8,7 @@ func build() -> void:
 	top.add_child(UI.genre_chip(Game.genre, true))
 	top.add_child(UI.label("Current genre", "Small"))
 	top.add_child(UI.spacer())
+	top.add_child(UI.button("TREAT THE BAND", "gift", "Gold", _band_treat_dialog))
 	top.add_child(UI.button("CHANGE GENRE", "swap", "", _genre_dialog))
 	add_child(top)
 	var grid := GridContainer.new()
@@ -25,7 +26,10 @@ func _member_card(role: String) -> Control:
 		var c0: Array = UI.card(InstrumentData.ROLE_NAMES[role], Icons.role_icon(role), "Card", UITheme.BAD)
 		c0[0].size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		c0[1].add_child(UI.label("Vacant! Gigs will suffer badly until you find someone.", "Body", null, true))
-		c0[1].add_child(UI.button("FIND A %s" % InstrumentData.ROLE_NAMES[role].to_upper(), "search", "Gold", hq.open_page.bind("talent")))
+		c0[1].add_child(UI.button("FIND A %s" % InstrumentData.ROLE_NAMES[role].to_upper(), "search", "Gold", func():
+			hq.open_page("talent")
+			TalentPage.role = role
+			hq.refresh()))
 		return c0[0]
 	var p := UI.panel("Card")
 	p.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -174,6 +178,42 @@ static func treat_options(main: Control, mid: String, on_pick: Callable) -> VBox
 	return v
 
 
+## Treats for everyone at once: a cheap night out or a pricey spa weekend.
+func _band_treat_dialog() -> void:
+	var v := UI.vbox(14)
+	v.add_child(UI.label("TREAT THE BAND", "Caps", UITheme.ACCENT))
+	v.add_child(UI.label("Lift everyone's spirits at once", "H2"))
+	v.add_child(UI.label("Treats work less well if you overdo them. Funds: %s" % U.money(Game.funds), "BodyMuted", null, true))
+	var modal: Control
+	for i in InstrumentData.BAND_TREATS.size():
+		var t: Dictionary = InstrumentData.BAND_TREATS[i]
+		var cost := Game.band_treat_cost(i)
+		var row := UI.panel("CardFlat")
+		var h := UI.hbox(14)
+		h.add_child(Icons.make(t.icon, 30, UITheme.GOLD))
+		var tv := UI.vbox(2)
+		tv.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		tv.add_child(UI.label(t.name, "H3"))
+		var eff := "+%d contentment each" % int(t.boost)
+		eff += " · tiredness gone" if float(t.fatigue) < 0.0 else " · a bit hungover"
+		tv.add_child(UI.label(eff, "Caps", UITheme.GOOD))
+		tv.add_child(UI.label(t.desc, "Small", null, true))
+		h.add_child(tv)
+		var b := UI.button(U.money(cost), "funds", "Gold", func():
+			var txt := Game.treat_band(i)
+			main.close_modal(modal)
+			if txt != "":
+				main.show_toast(txt, "good", 6.0))
+		b.disabled = cost > Game.funds
+		b.custom_minimum_size.x = 130
+		b.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+		h.add_child(b)
+		row.add_child(h)
+		v.add_child(row)
+	v.add_child(UI.button("Close", "x", "Ghost", func(): main.close_modal(modal)))
+	modal = main.open_modal(v, 680, true)
+
+
 func _treat_dialog(mid: String) -> void:
 	var m: Dictionary = Game.musicians[mid]
 	var v := UI.vbox(14)
@@ -193,7 +233,7 @@ func _treat_dialog(mid: String) -> void:
 		else:
 			txt = Game.give_bonus(mid, float(choice.amount), float(choice.boost))
 		if txt != "":
-			main.show_toast(txt, "good")
+			main.show_toast(txt, "good", 5.0)
 		main.close_modal(modal)))
 	v.add_child(UI.button("Close", "x", "Ghost", func(): main.close_modal(modal)))
 	modal = main.open_modal(v, 660, true)

@@ -62,11 +62,11 @@ The game autosaves every week and when a phone sends the app to the background.
 | Famous enough: stars approach you at up to 50% off | `Events._star_offer` |
 | Fortnightly newspaper; you start in the small print and work up to the headline | `Events.queue_news`, `EventView._news` |
 | Rival bands (spoofs and locals) in your genre and fame range | `scripts/data/band_data.gd`, Scene page |
-| Producers (rubbish to genius), the It Factor, local (Top 10) and national (Top 20) charts, a weekly position with movement, dropped singles shown for one more week, archive | `Charts`, producer/name events, Charts and Releases pages |
+| Producers (rubbish to genius), the It Factor, local (Top 10) and national (Top 30) charts, a weekly position with movement, dropped singles shown for one more week, archive | `Charts`, producer/name events, Charts and Releases pages |
 | Two Top-20 singles → album deal, album sales worth 5× | `Events` label offer, Album Top 20 |
 | Documentary and concert film deals | `Events.roll_weekly` |
 | Fans collapsing → members leave (with 2–3 replacements offered) or the band splits (game over) | `WeekSim._check_endings`, `Events.queue_member_left` |
-| Final Tour (6 months, bigger crowds and merch) → retirement | Home page once eligible (2 years together, fame 35+) |
+| Final Tour (6 months, bigger crowds and merch) → retirement | Optional. Home page once eligible (10 years together, fame 35+); otherwise carry on as long as the band lasts |
 | Name the band: 4 genre-appropriate suggestions or your own | `scripts/screens/band_name_screen.gd`, `NameData` |
 
 ### The public base
@@ -122,11 +122,12 @@ and every game shakes the scenes up a little so no two maps sound the same.
 - **Gig clashes**: a rival in your genre playing across town can pinch your crowd.
 - **Genre trends** that shift monthly (Scene page). Seven genres: Rock, Heavy Metal, Grunge, Punk, Britpop, Indie and Alt Rock. Every musician has a favourite and a second favourite; either one matching the band's genre makes them play better and stay happier.
 - **Song feel**: when you name a single or album you set its feel, from Poppy (fast climber, broad appeal, may annoy purists, occasionally a sleeper hit) to Dial Up To 11 (slow burner, genre lovers adore it, love-it-or-hate-it).
-- **Charts**: National Top 20, Local Top 10, Album Top 20, and a record book of the most weeks at No.1. Titles never appear twice in the charts.
+- **Charts**: National Top 30, Local Top 10, Album Top 20, and a record book of the most weeks at No.1. Charts are ranked on weekly sales (shown on the chart page); a new release charts once its first week of sales is in. Titles never appear twice in the charts.
 - **The critic** is tougher than the crowd and always has one piece of advice. A bad review hardly matters for a new band (it's still a mention in the paper), but once you're famous a three-star review costs you.
 - **Random events**: dead vans, flooded rehearsal rooms, viral clips, advert offers, dodgy kebabs.
 - **Member fame**: each member has their own fame. Singers catch the most spotlight. Past 55, famous members start doing things: dressing-room demands, tabloid scandals, solo-album rumours… or opening a school, fronting a charity single, speaking up for a country nobody covers. Happy members lean towards the good stuff.
 - **Hidden potential**: you see a range until someone joins (Jam the *Talent Spotter* sees it exactly).
+- **Treat the band**: a Night on the Town or a Spa Weekend lifts everyone at once (Band page), alongside gifts and bonuses for individuals.
 - **Hall of Fame** with a legacy score, plus three difficulty levels.
 
 ---

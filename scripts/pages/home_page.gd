@@ -183,7 +183,10 @@ func _roster_card() -> Control:
 			v.add_child(UI.label("NO %s!" % InstrumentData.ROLE_NAMES[role].to_upper(), "Caps", UITheme.BAD))
 			v.add_child(UI.label("Hire one on the Talent page", "Small"))
 			h.add_child(v)
-			h.add_child(UI.button("HIRE", "search", "Gold", hq.open_page.bind("talent")))
+			h.add_child(UI.button("HIRE", "search", "Gold", func():
+				hq.open_page("talent")
+				TalentPage.role = role
+				hq.refresh()))
 		else:
 			h.add_child(Portrait.make(m.look, 52))
 			var v2 := UI.vbox(2)
@@ -275,7 +278,7 @@ func _tour_card() -> Control:
 		spacer.visible = false
 		return spacer
 	var c2: Array = UI.card("The Final Tour", "flag", "Card", UITheme.GOLD)
-	c2[1].add_child(UI.label("You've been together long enough to go out on a high. Announce a six-month farewell tour: huge crowds, huge merch, then retirement.", "Body", null, true))
+	c2[1].add_child(UI.label("Ten years together! If you fancy going out on a high, you can announce a six-month farewell tour: huge crowds, huge merch, then retirement. Or just keep going. There's no rush.", "Body", null, true))
 	c2[1].add_child(UI.button("ANNOUNCE FINAL TOUR", "flag", "Gold", func():
 		main.confirm("Announce the Final Tour?", "Six months of farewell gigs with bigger crowds and merch sales, then the band retires and your career ends. There's no going back.", "ANNOUNCE IT", Game.start_final_tour, "flag")))
 	return c2[0]

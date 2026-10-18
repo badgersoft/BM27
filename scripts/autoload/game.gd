@@ -10,7 +10,9 @@ const SAVE_PATH := "user://bm27_save.json"
 const HOF_PATH := "user://bm27_halloffame.json"
 const SAVE_VERSION := 5
 const ROLES := ["vocals", "guitar", "bass", "drums"]
-const FINAL_TOUR_MIN_WEEKS := 96
+## A Final Tour is optional and only possible after ten years together;
+## otherwise a band can carry on for as long as it lasts.
+const FINAL_TOUR_MIN_WEEKS := 10 * U.WEEKS_PER_YEAR
 const FINAL_TOUR_LENGTH := 24
 
 # ------------------------------------------------------------------- state
@@ -656,6 +658,27 @@ func give_gift(mid: String, gift_idx: int) -> String:
 	m.gift_fatigue = float(m.gift_fatigue) + 8.0
 	changed.emit()
 	return "%s loved the %s. (+%d contentment)" % [m.name, g.name.to_lower(), int(round(boost))]
+
+
+func band_treat_cost(idx: int) -> float:
+	var t: Dictionary = InstrumentData.BAND_TREATS[idx]
+	return roundf(float(t.cost) * maxi(1, members().size()) * city_cost() * (1.0 + fame() / 25.0) / 10.0) * 10.0
+
+
+## Treat everyone at once. Returns the message to show ("" if unaffordable).
+func treat_band(idx: int) -> String:
+	var t: Dictionary = InstrumentData.BAND_TREATS[idx]
+	if members().is_empty() or not spend(band_treat_cost(idx), t.name):
+		return ""
+	var total := 0.0
+	for m in members():
+		var boost := gift_boost(m, float(t.boost))
+		m.happy = clampf(float(m.happy) + boost, 0.0, 100.0)
+		m.gift_fatigue = float(m.gift_fatigue) + 5.0
+		total += boost
+	flags.fatigue = clampf(float(flags.get("fatigue", 0.0)) + float(t.fatigue), 0.0, 10.0)
+	changed.emit()
+	return cityize(str(t.result)) % int(round(total / members().size()))
 
 
 ## One-off cash bonus options for a musician: [[amount, boost], ...]

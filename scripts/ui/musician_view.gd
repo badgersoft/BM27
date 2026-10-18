@@ -93,7 +93,10 @@ static func market_row(m: Dictionary, action: Callable, replacing: Dictionary = 
 	if tb:
 		nm.add_child(tb)
 	id.add_child(nm)
-	var tags := UI.hbox(8)
+	# Wraps on narrow screens instead of pushing the row wider.
+	var tags := HFlowContainer.new()
+	tags.add_theme_constant_override("h_separation", 8)
+	tags.add_theme_constant_override("v_separation", 4)
 	tags.add_child(UI.label("Age %d" % int(m.age), "Small"))
 	tags.add_child(UI.genre_pair(m))
 	tags.add_child(UI.chip(Game.temperament_word(int(m.ease)), UITheme.MUTED))

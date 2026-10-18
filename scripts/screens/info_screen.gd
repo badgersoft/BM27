@@ -12,7 +12,7 @@ const SECTIONS := [
 	["vinyl", "Singles & Albums", "Get famous enough and producers will call. Your single's success depends on the band, the producer, your best demo song, and the mysterious It Factor. Write demos on Write Songs weeks: singles use your best one, albums your best ten. Two Top 20 hits and the record labels come knocking. Albums sell for five times as much."],
 	["news", "Press & Rivals", "Interviews start at the school paper and end on global TV. Choose your tone carefully. A music paper lands every two weeks. Other bands in your genre compete for the same crowds."],
 	["swap", "Genre", "You can change genre any time. People who don't like the new sound drift away (loyal ones less so); people who love it warm to you."],
-	["flag", "The Final Tour", "After two years together, with enough fame, you can announce a six-month Final Tour. Every casual fan wants a last look, so gate receipts and merch soar. Then you retire into the Hall of Fame."],
+	["flag", "The Final Tour", "After ten years together, with enough fame, you can choose to announce a six-month Final Tour. Every casual fan wants a last look, so gate receipts and merch soar. Then you retire into the Hall of Fame. It is entirely optional: a band can keep going for decades if it holds together."],
 	["alert", "Game Over", "If your following crashes from its peak and the band is miserable, they may decide to split up for good."],
 	["funds", "Money", "Rehearsal rent is weekly. Gig hire is paid when you book. You earn from tickets, half the bar takings, merch, record sales, interviews and the odd deal. You can't go into debt: if you can't pay the rent, it's back to Nan's shed."],
 ]
