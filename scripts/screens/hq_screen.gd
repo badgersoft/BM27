@@ -102,6 +102,12 @@ func refresh() -> void:
 
 
 func open_page(name: String) -> void:
+	# The talent page opens on an empty seat if there is one.
+	if name == "talent":
+		for r in Game.ROLES:
+			if Game.member(r).is_empty():
+				TalentPage.role = r
+				break
 	page_name = name
 	page_scroll.scroll_vertical = 0
 	refresh()

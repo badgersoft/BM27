@@ -215,6 +215,10 @@ static func _run() -> void:
 		if p == "fans":
 			hq.page_scroll.scroll_vertical = 520
 			await _shot("11_page_fans_b")
+	hq.open_page("band")
+	hq.page._band_treat_dialog()
+	await _shot("12_band_treat")
+	m.close_all_modals()
 	hq.open_page("home")
 	# Event modals.
 	if not Game.gig_history.is_empty():

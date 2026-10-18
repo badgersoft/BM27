@@ -548,10 +548,8 @@ static func _resolve_name(ev: Dictionary, title: Variant) -> Dictionary:
 		Game.flags.pending_album = data
 		Game.add_inbox("Into the studio", "Recording of '%s' has begun with %s. Out in 3 weeks." % [t, ev.producer], "disc")
 		return _res("Recording '%s'" % t, "The band have decamped to the studio with %s. The album will be released in 3 weeks." % ev.producer, "disc", "good")
-	var rel := release_now(data)
-	var pos_txt := "It's entered the national chart at number %d!" % int(rel.nat_pos) if int(rel.nat_pos) > 0 else "It hasn't cracked the national Top 20 yet."
-	if int(rel.local_pos) > 0:
-		pos_txt += " Local chart: number %d." % int(rel.local_pos)
+	release_now(data)
+	var pos_txt := "It's in the shops now. The charts are decided by sales, so you'll see where it lands once the first week's sales are in, in next week's report."
 	return _res("'%s' is out!" % t, "Produced by %s.\n\n%s" % [ev.producer, pos_txt], "vinyl", "good")
 
 
@@ -577,7 +575,7 @@ static func release_now(data: Dictionary) -> Dictionary:
 	var rel := {
 		"id": Game.uid("r"), "kind": data.kind, "title": data.title, "week": Game.week, "quality": q, "it": it,
 		"producer": data.producer, "nat_base": q * national_reach(f) * it * (0.85 + 0.15 * Game.trend()) * power,
-		"local_base": q * (0.5 + f / 40.0) * it * power, "feel": feel,
+		"local_base": q * (0.35 + f / 70.0) * it * power, "feel": feel,
 		# Now and then a catchy song comes roaring back weeks later.
 		"sleeper": randi_range(7, 12) if feel == 0 and randf() < 0.06 else -1,
 		"nat_pos": 0, "local_pos": 0, "last_nat": 0, "last_local": 0,
@@ -601,7 +599,9 @@ static func release_now(data: Dictionary) -> Dictionary:
 ## Bands nobody outside their home town knows struggle to chart nationally.
 static func national_reach(f: float) -> float:
 	var spread: float = [0.45, 0.75, 1.0][clampi(Game.reach_stage(), 0, 2)]
-	return (0.05 + pow(f / 100.0, 1.5) * 1.4) * spread
+	# Tops out around the biggest rival records, so even a famous band needs
+	# a strong song (and some luck) for a No.1.
+	return (0.04 + pow(f / 100.0, 1.5) * 0.9) * spread
 
 
 static func _resolve_star(ev: Dictionary, choice: Variant) -> Dictionary:

@@ -182,18 +182,24 @@ func confirm(title: String, text: String, ok_text: String, on_ok: Callable, icon
 	m = open_modal(v, 560, true)
 
 
-func show_toast(text: String, kind: String = "info") -> void:
+## A message that fades out after a while: longer messages stay up longer
+## (or pass duration in seconds).
+func show_toast(text: String, kind: String = "info", duration: float = -1.0) -> void:
 	var p := PanelContainer.new()
 	var col := UI.kind_color(kind)
 	p.add_theme_stylebox_override("panel", UITheme.box(Color("#24242c"), 10, col, 1, 16, 10))
 	var h := UI.hbox(10)
 	h.add_child(Icons.make("alert" if kind == "bad" else "check" if kind == "good" else "info", 18, col))
-	h.add_child(UI.label(text, "Body"))
+	var l := UI.label(text, "Body", null, true)
+	l.custom_minimum_size.x = minf(560.0, 18.0 + text.length() * 9.0)
+	h.add_child(l)
 	p.add_child(h)
 	p.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	p.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	toast_box.add_child(p)
 	var tw := create_tween()
-	tw.tween_interval(2.4)
+	if duration < 0.0:
+		duration = clampf(1.6 + text.length() * 0.04, 2.4, 6.0)
+	tw.tween_interval(duration)
 	tw.tween_property(p, "modulate:a", 0.0, 0.4)
 	tw.tween_callback(p.queue_free)

@@ -160,7 +160,7 @@ func _demographics(pub: Public) -> Control:
 	if int(d.total) == 0:
 		c[1].add_child(UI.label("Nobody's into you enough yet to draw a picture.", "BodyMuted"))
 		return c[0]
-	c[1].add_child(UI.label("Regular listeners and up · %d people · %d%% female, %d%% male" % [d.total, int(round(100.0 * d.female / d.total)), 100 - int(round(100.0 * d.female / d.total))], "Small"))
+	c[1].add_child(UI.label("Regular listeners and up · %s people · %d%% female, %d%% male" % [U.num(d.total), int(round(100.0 * d.female / d.total)), 100 - int(round(100.0 * d.female / d.total))], "Small", null, true))
 	var labels := ["Under 18", "18-24", "25-34", "35-49", "50-64", "65+"]
 	var mx := 1
 	for n in d.bands:
@@ -173,8 +173,8 @@ func _demographics(pub: Public) -> Control:
 		var m := UI.meter(float(d.bands[i]) / mx, UITheme.INFO, 8.0)
 		m.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 		h.add_child(m)
-		var n := UI.label(str(d.bands[i]), "Small")
-		n.custom_minimum_size.x = 40
+		var n := UI.label(U.num(d.bands[i]), "Small")
+		n.custom_minimum_size.x = 48
 		h.add_child(n)
 		c[1].add_child(h)
 	return c[0]
@@ -192,18 +192,43 @@ func _cities(pub: Public) -> Control:
 		if b == home_r:
 			return false
 		return _region_engaged(pub, a) > _region_engaged(pub, b))
+	# Once you're national, other regions are one line each (all their cities
+	# added together) to keep the list short; your home region stays by city.
+	var grouped := pub.stage >= 2
 	var unreached: Array = []
+	var shown_other := false
 	for r in order:
 		if r != home_r and _region_engaged(pub, r) == 0:
 			unreached.append(pub.regions[r].short)
 			continue
-		c[1].add_child(UI.label(str(pub.regions[r].name).to_upper(), "Caps", UITheme.ACCENT if r == home_r else UITheme.MUTED))
-		for ci in pub.regions[r].cities:
-			c[1].add_child(_city_row(pub, ci))
+		if r == home_r or not grouped:
+			c[1].add_child(UI.label(str(pub.regions[r].name).to_upper(), "Caps", UITheme.ACCENT if r == home_r else UITheme.MUTED))
+			for ci in pub.regions[r].cities:
+				c[1].add_child(_city_row(pub, ci))
+		else:
+			if not shown_other:
+				c[1].add_child(UI.label("THE REST OF THE COUNTRY", "Caps", UITheme.MUTED))
+				shown_other = true
+			c[1].add_child(_region_row(pub, r))
 	if not unreached.is_empty():
 		c[1].add_child(UI.sep())
-		c[1].add_child(UI.icon_label("lock", "Not reached yet: " + ", ".join(unreached), UITheme.DIM, "Small"))
+		c[1].add_child(UI.icon_label("lock", "Not reached yet: " + ", ".join(unreached), UITheme.DIM, "Small", 16, true))
 	return c[0]
+
+
+## One line for a whole region: every city's tiers added up, and the
+## average exposure.
+func _region_row(pub: Public, r: int) -> Control:
+	var totals := [0, 0, 0, 0, 0]
+	var expo := 0.0
+	var cities: Array = pub.regions[r].cities
+	for ci in cities:
+		var ct: Array = pub.city_counts(ci)
+		for t in 5:
+			totals[t] += int(ct[t])
+		expo += pub.exposure[ci]
+	var names: Array = cities.map(func(ci): return pub.city_name(ci))
+	return _counts_row(str(pub.regions[r].name), ", ".join(names), totals, expo / maxf(1.0, cities.size()), false)
 
 
 static func _region_engaged(pub: Public, r: int) -> int:
@@ -215,24 +240,32 @@ static func _region_engaged(pub: Public, r: int) -> int:
 
 
 func _city_row(pub: Public, ci: int) -> Control:
+	return _counts_row(pub.city_name(ci), "", pub.city_counts(ci), pub.exposure[ci], ci == Game.base_city)
+
+
+func _counts_row(name: String, tip: String, ct: Array, expo: float, home: bool) -> Control:
 	var v := UI.vbox(3)
 	var h := UI.hbox(8)
-	if ci == Game.base_city:
+	if home:
 		h.add_child(Icons.make("home", 14, UITheme.GOLD))
-	var n := UI.label(pub.city_name(ci), "Strong", UITheme.GOLD if ci == Game.base_city else UITheme.TEXT)
+	var n := UI.label(name, "Strong", UITheme.GOLD if home else UITheme.TEXT)
 	n.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	n.clip_text = true
+	n.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+	if tip != "":
+		n.tooltip_text = tip
+		n.mouse_filter = Control.MOUSE_FILTER_PASS
 	h.add_child(n)
-	var ct: Array = pub.city_counts(ci)
 	for t in [1, 2, 3, 4]:
 		var cell := UI.hbox(3)
 		cell.add_child(Icons.make(TIER_ICONS[t], 12, TIER_COLORS[t]))
-		var l := UI.label(str(ct[t]), "Small", UITheme.TEXT)
-		l.custom_minimum_size.x = 30
+		var l := UI.label(U.num(ct[t]), "Small", UITheme.TEXT)
+		l.custom_minimum_size.x = 38
 		cell.add_child(l)
 		cell.tooltip_text = Public.TIER_NAMES[t]
 		h.add_child(cell)
 	v.add_child(h)
-	var m := UI.meter(pub.exposure[ci], UITheme.GOLD, 4.0)
-	m.tooltip_text = "How much your music is circulating in %s" % pub.city_name(ci)
+	var m := UI.meter(expo, UITheme.GOLD, 4.0)
+	m.tooltip_text = "How much your music is circulating in %s" % name
 	v.add_child(m)
 	return v

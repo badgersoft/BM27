@@ -1,12 +1,12 @@
 class_name Charts
 extends RefCounted
-## Three living charts: National Top 20 singles, the Local Top 10 for
+## Three living charts: National Top 30 singles, the Local Top 10 for
 ## your home scene, and the National Album Top 20. Rival releases arrive every
 ## week, peak and fade; your releases compete against them on "power".
 ## Each entry has a "shape" (the song's feel, see FEELS) that sets how fast it
 ## climbs and how long it lasts.
 
-const NAT_SIZE := 20
+const NAT_SIZE := 30
 const LOCAL_SIZE := 10
 const ALBUM_SIZE := 20
 
@@ -135,11 +135,11 @@ static func _rival_entry(chart: Array, local: bool, base: float, age: int, album
 
 
 static func _new_nat_base() -> float:
-	return 8.0 + 92.0 * pow(randf(), 2.2)
+	return 12.0 + 88.0 * pow(randf(), 1.7)
 
 
 static func _new_local_base() -> float:
-	return 4.0 + 46.0 * pow(randf(), 1.6)
+	return 6.0 + 58.0 * pow(randf(), 1.4)
 
 
 static func init_charts() -> void:
@@ -253,6 +253,13 @@ static func _update_player_releases(advance: bool, rep: Dictionary) -> void:
 		rel.last_local = int(rel.local_pos)
 		rel.nat_pos = nat
 		rel.local_pos = loc
+		# New entries (positions only exist once a week of sales is in).
+		if advance and int(rel.last_nat) == 0 and nat > 0:
+			WeekSim.line(rep, "'%s' entered the national %s chart at number %d!" % [rel.title, "album" if album else "singles", nat], "good")
+		elif advance and not album and int(rel.last_local) == 0 and loc > 0 and nat == 0:
+			WeekSim.line(rep, "'%s' entered the local chart at number %d." % [rel.title, loc], "good")
+		elif advance and int(rel.weeks_on) == 0 and nat == 0 and loc == 0 and rel.status == "charting":
+			WeekSim.line(rep, "'%s' didn't sell enough to chart this week." % rel.title, "bad")
 		if nat > 0 and (int(rel.peak_nat) == 0 or nat < int(rel.peak_nat)):
 			rel.peak_nat = nat
 		if loc > 0 and (int(rel.peak_local) == 0 or loc < int(rel.peak_local)):
@@ -271,9 +278,9 @@ static func _update_player_releases(advance: bool, rep: Dictionary) -> void:
 		# Sales for the week just gone.
 		var sales := 0.0
 		if nat > 0:
-			sales = (60000.0 if album else 120000.0) / pow(nat, 1.1) * randf_range(0.9, 1.1)
+			sales = weekly_sales(nat, album, false) * randf_range(0.9, 1.1)
 		elif loc > 0:
-			sales = 900.0 / pow(loc, 0.8) * randf_range(0.9, 1.1)
+			sales = weekly_sales(loc, false, true) * randf_range(0.9, 1.1)
 		var money := sales * (ALBUM_PRICE if album else SINGLE_PRICE) * Settings.income_mult()
 		rel.sales = int(sales)
 		rel.total_sales = int(rel.total_sales) + int(sales)
@@ -312,7 +319,17 @@ static func add_release(rel: Dictionary) -> void:
 		le.base = float(rel.local_base)
 		le.power = float(rel.local_base) * curve(0, shape)
 		Game.chart_local.append(le)
-	weekly_update(false)
+	# No position yet: the release charts once its first week's sales are in.
+
+
+## Copies a chart position sells in a week (what decides the position, so
+## it's also shown for rivals on the chart page).
+static func weekly_sales(pos: int, album: bool, local: bool) -> float:
+	if pos <= 0:
+		return 0.0
+	if local:
+		return 900.0 / pow(pos, 0.8)
+	return (80000.0 if album else 160000.0) / pow(pos, 0.97)
 
 
 ## Local scene singles in the charts right now (for the HQ chart panel).

@@ -5,7 +5,7 @@ static var tab := "nat"
 
 
 func build() -> void:
-	title("The Charts", "Updated every week. Your releases are highlighted in gold, local bands are tagged.", "chart")
+	title("The Charts", "Ranked on this week's sales. Your releases are highlighted in gold, local bands are tagged.", "chart")
 	var tabs := UI.hbox(6)
 	for t in [["nat", "NATIONAL TOP %d" % Charts.NAT_SIZE, "chart"], ["local", "LOCAL TOP %d" % Charts.LOCAL_SIZE, "home"],
 			["album", "ALBUM TOP %d" % Charts.ALBUM_SIZE, "disc"], ["records", "RECORDS", "trophy"]]:
@@ -70,6 +70,17 @@ func _row(e: Dictionary) -> Control:
 			n1.tooltip_text = "Weeks at number one"
 			slot.add_child(n1)
 		h.add_child(slot)
+	# This week's sales: the chart is ranked on them.
+	var sold := float(Charts.weekly_sales(int(e.pos), tab == "album", tab == "local"))
+	if mine:
+		for r in Game.releases:
+			if r.id == e.rel:
+				sold = float(r.sales)
+	var sl := UI.label(U.num(sold), "Small", UITheme.GOLD if mine else UITheme.MUTED)
+	sl.custom_minimum_size.x = 64
+	sl.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	sl.tooltip_text = "Copies sold this week"
+	h.add_child(sl)
 	var wk := UI.label("%dw" % (int(e.age) + 1), "Small")
 	wk.custom_minimum_size.x = 36
 	h.add_child(wk)

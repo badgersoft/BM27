@@ -54,6 +54,17 @@ const TIERS := {
 }
 
 ## Gifts and treats for keeping a musician sweet. boost = contentment gained.
+## Treats for the whole band: cost is per member, scaled up with fame (a
+## famous band's night out costs more). fatigue: change to band fatigue.
+const BAND_TREATS := [
+	{"id": "town", "name": "Night on the Town", "icon": "flame", "cost": 60.0, "boost": 7.0, "fatigue": 1.0,
+		"desc": "Curry, karaoke and a club that plays nothing but '90s anthems. Everyone's happier, if a bit fragile tomorrow.",
+		"result": "The band painted {city} red. Somebody lost a shoe; nobody remembers whose. (+%d contentment each)"},
+	{"id": "spa", "name": "Spa Weekend", "icon": "sparkle", "cost": 450.0, "boost": 14.0, "fatigue": -4.0,
+		"desc": "Fluffy robes, a hot tub and a man called Sven who does something to your shoulders. Morale up, tiredness gone.",
+		"result": "Two days of fluffy robes and cucumber water. The band came back glowing and well rested. (+%d contentment each)"},
+]
+
 const GIFTS := [
 	{"id": "pint", "name": "A Pint & a Packet of Crisps", "cost": 10, "boost": 5, "icon": "gift"},
 	{"id": "hoodie", "name": "Limited Edition Band Hoodie", "cost": 45, "boost": 8, "icon": "shirt"},

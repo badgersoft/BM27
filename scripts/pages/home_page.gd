@@ -183,7 +183,10 @@ func _roster_card() -> Control:
 			v.add_child(UI.label("NO %s!" % InstrumentData.ROLE_NAMES[role].to_upper(), "Caps", UITheme.BAD))
 			v.add_child(UI.label("Hire one on the Talent page", "Small"))
 			h.add_child(v)
-			h.add_child(UI.button("HIRE", "search", "Gold", hq.open_page.bind("talent")))
+			h.add_child(UI.button("HIRE", "search", "Gold", func():
+				hq.open_page("talent")
+				TalentPage.role = role
+				hq.refresh()))
 		else:
 			h.add_child(Portrait.make(m.look, 52))
 			var v2 := UI.vbox(2)

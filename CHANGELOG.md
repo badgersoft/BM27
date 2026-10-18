@@ -1,5 +1,14 @@
 # Changelog
 
+## v0.10.0 (2026-10-18): Harder charts and band treats
+- Treat the whole band: a Night on the Town or a Spa Weekend (Band page).
+- Treat messages stay on screen longer; longer messages stay up longer generally.
+- Hiring opens the talent page on the empty seat instead of always the singer.
+- Fans page: the left-hand boxes no longer run off the screen as numbers grow; once you're national, other regions show as one combined line each.
+- Gig offers: the cards share the width equally and never run off the screen.
+- Charts are ranked on sales: a new single only charts once its first week's sales are in, and each chart row shows that week's sales.
+- National chart is now a Top 30, with stronger rival records and more sales needed to get in; famous bands no longer get an automatic No.1.
+
 ## v0.9.1 (2026-10-18)
 - The commit-message hook no longer stamps merge commits.
 

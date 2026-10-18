@@ -1,3 +1,4 @@
+class_name TalentPage
 extends Page
 ## Scout and sign musicians (replacing whoever holds the role).
 
