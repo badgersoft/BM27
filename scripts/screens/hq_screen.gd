@@ -63,6 +63,7 @@ func _ready() -> void:
 	next_btn.add_theme_stylebox_override("normal", shadow)
 	next_sub = UI.label("", "Caps", UITheme.MUTED)
 	next_sub.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	next_sub.add_theme_font_size_override("font_size", 16)
 	var pill := PanelContainer.new()
 	pill.add_theme_stylebox_override("panel", UITheme.box(Color(0.06, 0.06, 0.08, 0.92), 8, UITheme.LINE, 1, 10, 3))
 	pill.add_child(next_sub)
@@ -218,7 +219,7 @@ func _update_next() -> void:
 		next_sub.add_theme_color_override("font_color", UITheme.BAD)
 	else:
 		next_sub.text = "%s · WEEK %d OF 4" % [d.month.to_upper(), d.week_of_month]
-		next_sub.add_theme_color_override("font_color", UITheme.MUTED)
+		next_sub.add_theme_color_override("font_color", UITheme.MUTED.lerp(UITheme.TEXT, 0.3))
 
 
 # -------------------------------------------------------------- next week

@@ -475,7 +475,7 @@ static func _name_release(main: Control, ev: Dictionary, done: Callable) -> void
 	row.add_child(le)
 	# Your own title can't be one that's already in the charts or released.
 	var submit := func(t: String):
-		t = t.strip_edges()
+		t = U.title_case(t)
 		if t == "":
 			return
 		if Charts.titles_in_use().has(t.to_lower()):

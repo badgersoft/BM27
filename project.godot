@@ -12,7 +12,7 @@ config_version=5
 
 config/name="Band Manager 27"
 config/description="A rock band management simulation by Badger-soft."
-config/version="0.8.0"
+config/version="0.9.0"
 run/main_scene="res://scenes/main.tscn"
 config/quit_on_go_back=false
 config/features=PackedStringArray("4.7", "GL Compatibility")

@@ -66,12 +66,12 @@ static func roll_weekly(_rep: Dictionary) -> void:
 	# Documentary and concert film.
 	if _decisions_queued() < 2 and not bool(flags.doc_done) and int(flags.famous_weeks) >= 24 and randf() < 0.08:
 		var fee := roundf((250000.0 + f * 8000.0) * randf_range(0.8, 1.3) / 1000.0) * 1000.0
-		Game.queue.append({"type": "doc", "fee": fee, "title": MediaData.DOC_TITLES.pick_random().replace("{band}", Game.band_name)})
+		Game.queue.append({"type": "doc", "fee": fee, "title": Game.cityize(MediaData.DOC_TITLES.pick_random().replace("{band}", Game.band_name))})
 	if _decisions_queued() < 2 and not bool(flags.film_done) and f >= 72.0 and int(Game.stats.best_venue) >= 11 and randf() < 0.1:
 		var fee2 := roundf((500000.0 + f * 12000.0) * randf_range(0.8, 1.3) / 1000.0) * 1000.0
 		var vname: String = Data.gig_venue(int(Game.stats.best_venue)).name
 		Game.queue.append({"type": "film", "fee": fee2, "venue": vname,
-			"title": MediaData.FILM_TITLES.pick_random().replace("{band}", Game.band_name).replace("{venue}", vname)})
+			"title": Game.cityize(MediaData.FILM_TITLES.pick_random().replace("{band}", Game.band_name).replace("{venue}", vname))})
 	# Famous members get up to things, good and bad.
 	if _decisions_queued() < 2 and wk - int(flags.get("last_fame_week", -99)) >= 4:
 		var ev3 := _fame_event()

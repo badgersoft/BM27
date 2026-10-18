@@ -44,6 +44,24 @@ static func serif_black() -> Font:
 	return _serif_black
 
 
+## Two sixteenth notes joined by a double beam, outlined so they stand out
+## on the slider track.
+static func _notes_grabber(fill: Color) -> Texture2D:
+	var f := fill.to_html(false)
+	var svg := '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 40" width="40" height="40">' \
+		+ '<g fill="#%s" stroke="#140808" stroke-width="1.6" stroke-linejoin="round">' % f \
+		+ '<path d="M13 6 L33 2 L33 7.5 L13 11.5 Z"/>' \
+		+ '<path d="M13 13.5 L33 9.5 L33 15 L13 19 Z"/>' \
+		+ '<rect x="12" y="6" width="3" height="25" rx="1"/>' \
+		+ '<rect x="30.5" y="2" width="3" height="25" rx="1"/>' \
+		+ '<ellipse cx="9" cy="31" rx="6" ry="4.4" transform="rotate(-22 9 31)"/>' \
+		+ '<ellipse cx="27.5" cy="27" rx="6" ry="4.4" transform="rotate(-22 27.5 27)"/>' \
+		+ '</g></svg>'
+	var img := Image.new()
+	img.load_svg_from_string(svg, 1.0)
+	return ImageTexture.create_from_image(img)
+
+
 static func box(bg: Color, radius: int = 10, border: Color = Color(0, 0, 0, 0), bw: int = 0, pad_h: int = 14, pad_v: int = 10) -> StyleBoxFlat:
 	var s := StyleBoxFlat.new()
 	s.bg_color = bg
@@ -233,15 +251,10 @@ static func _build() -> Theme:
 	t.set_stylebox("slider", "HSlider", box(BG_2, 6, LINE, 1, 0, 5))
 	t.set_stylebox("grabber_area", "HSlider", box(GOLD.darkened(0.25), 6, Color(0, 0, 0, 0), 0, 0, 5))
 	t.set_stylebox("grabber_area_highlight", "HSlider", box(GOLD, 6, Color(0, 0, 0, 0), 0, 0, 5))
-	var knob := Image.create(30, 30, false, Image.FORMAT_RGBA8)
-	for y in 30:
-		for x in 30:
-			var d := Vector2(x - 14.5, y - 14.5).length()
-			if d <= 14.5:
-				knob.set_pixel(x, y, GOLD if d <= 11.5 else Color("#140808"))
-	var gtex := ImageTexture.create_from_image(knob)
+	# The grabber is a pair of beamed sixteenth notes.
+	t.set_icon("grabber_highlight", "HSlider", _notes_grabber(GOLD.lightened(0.25)))
+	var gtex := _notes_grabber(GOLD)
 	t.set_icon("grabber", "HSlider", gtex)
-	t.set_icon("grabber_highlight", "HSlider", gtex)
 	# Scroll hint: a short, soft shadow (flipped by Godot for the bottom edge).
 	var g := Gradient.new()
 	g.set_color(0, Color(0, 0, 0, 0.75))

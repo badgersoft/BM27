@@ -10,7 +10,9 @@ const SAVE_PATH := "user://bm27_save.json"
 const HOF_PATH := "user://bm27_halloffame.json"
 const SAVE_VERSION := 5
 const ROLES := ["vocals", "guitar", "bass", "drums"]
-const FINAL_TOUR_MIN_WEEKS := 96
+## A Final Tour is optional and only possible after ten years together;
+## otherwise a band can carry on for as long as it lasts.
+const FINAL_TOUR_MIN_WEEKS := 10 * U.WEEKS_PER_YEAR
 const FINAL_TOUR_LENGTH := 24
 
 # ------------------------------------------------------------------- state

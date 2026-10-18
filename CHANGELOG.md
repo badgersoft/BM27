@@ -1,5 +1,14 @@
 # Changelog
 
+## v0.9.0 (2026-10-18): Longer careers and a lot more variety
+- The Final Tour is optional and only available after ten years together; bands can carry on for decades.
+- Small venues (village hall, school hall, pub, student union) have different names in each city and each game.
+- Three times as many song and album titles, twice the band-name words and more name patterns, more national and local rival bands, twice as many first names for the public.
+- More newspaper headlines and standfirsts, three times the gig reviews and critic quotes, twice the crowd reactions, three times the documentary and concert film titles.
+- The song-feel slider handle is a pair of beamed sixteenth notes.
+- Titles you type for your own songs and albums are capitalised in the same style as the game's own titles.
+- The month and week under NEXT WEEK is a touch bigger and brighter.
+
 ## v0.8.0 (2026-10-11): Version numbers
 - Every commit gets a version number (MAJOR.MINOR.PATCH); see "Versions" in the README.
 - The version is shown on the main menu, and stamped into every export preset.

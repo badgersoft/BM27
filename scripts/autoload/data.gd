@@ -53,10 +53,31 @@ func practice_venue(idx: int) -> Dictionary:
 ## city the venue is in this month.
 func gig_venue(idx: int, named: bool = true) -> Dictionary:
 	var v: Dictionary = gigs[clampi(idx, 0, gigs.size() - 1)]
-	if named and str(v.name).contains("{city}"):
+	if not named:
+		return v
+	var local := VenueData.LOCAL_NAMES.has(v.id) and Game.public != null
+	if local or str(v.name).contains("{city}"):
+		var c := Game.gig_city_of(idx)
 		v = v.duplicate()
-		v.name = str(v.name).replace("{city}", Game.city_name(Game.gig_city_of(idx)))
+		if local:
+			v.name = local_venue_name(str(v.id), c)
+		v.name = str(v.name).replace("{city}", Game.city_name(c))
 	return v
+
+
+## Small venues have a different name in each city (and each game): the
+## village hall might be St Benedict's in one town and St David's in Cardiff.
+## The pick is fixed for the game, so a city keeps its hall.
+func local_venue_name(id: String, city: int) -> String:
+	var pools: Dictionary = VenueData.LOCAL_NAMES[id]
+	var pool: Array = (pools.any as Array).duplicate()
+	if city >= 0:
+		var rid: String = Game.public.regions[Game.public.region_of(city)].id
+		pool.append_array(pools.get(rid, []))
+	if pool.is_empty():
+		return str(gigs[0].name)
+	var h := absi(hash("%d:%s:%d" % [Game.public.seed_val, id, city]))
+	return str(pool[h % pool.size()])
 
 
 func instrument(role: String, tier: int) -> Dictionary:

@@ -66,7 +66,7 @@ The game autosaves every week and when a phone sends the app to the background.
 | Two Top-20 singles → album deal, album sales worth 5× | `Events` label offer, Album Top 20 |
 | Documentary and concert film deals | `Events.roll_weekly` |
 | Fans collapsing → members leave (with 2–3 replacements offered) or the band splits (game over) | `WeekSim._check_endings`, `Events.queue_member_left` |
-| Final Tour (6 months, bigger crowds and merch) → retirement | Home page once eligible (2 years together, fame 35+) |
+| Final Tour (6 months, bigger crowds and merch) → retirement | Optional. Home page once eligible (10 years together, fame 35+); otherwise carry on as long as the band lasts |
 | Name the band: 4 genre-appropriate suggestions or your own | `scripts/screens/band_name_screen.gd`, `NameData` |
 
 ### The public base

@@ -61,6 +61,40 @@ static func version() -> String:
 	return str(ProjectSettings.get_setting("application/config/version", "0.0.0"))
 
 
+## Capitalises a title the player types the way the game's own titles are
+## written, every word starting with a capital: "the shed in the rain" ->
+## "The Shed In The Rain". Words with deliberate capitals ("McFly", "UK",
+## "iPod") are left alone unless the whole title was typed in capitals.
+static func title_case(text: String) -> String:
+	var t := text.strip_edges()
+	while "  " in t:
+		t = t.replace("  ", " ")
+	var all_caps := t == t.to_upper() and t != t.to_lower()
+	var out: PackedStringArray = []
+	for w in t.split(" "):
+		out.append(_title_word(w, all_caps))
+	return " ".join(out)
+
+
+static func _title_word(w: String, all_caps: bool) -> String:
+	if "-" in w:
+		var done: PackedStringArray = []
+		for part in w.split("-"):
+			done.append(_title_word(part, all_caps))
+		return "-".join(done)
+	# Leading punctuation like ( or ' stays put.
+	var lead := ""
+	while w.length() > 0 and w[0].to_lower() == w[0].to_upper() and not w[0].is_valid_int():
+		lead += w[0]
+		w = w.substr(1)
+	if w == "":
+		return lead
+	if not all_caps and w != w.to_lower():
+		return lead + w   # deliberate capitals: McFly, UK, iPod
+	var low := w.to_lower()
+	return lead + low.substr(0, 1).to_upper() + low.substr(1)
+
+
 static func money(v: float) -> String:
 	var neg := v < 0.0
 	v = absf(v)

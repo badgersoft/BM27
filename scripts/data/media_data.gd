@@ -79,19 +79,22 @@ const PUBLICATIONS := ["The Weekly Riff", "Kerplang!", "NMEh", "Melody Moaner", 
 
 ## Headlines about other bands. {b} = band, {b2} = second band, {s} = song, {n} = number.
 const MEGA_HEADLINES := [
-	"{b} ANNOUNCE {n}-NIGHT RUN AT WOMBLEY",
-	"{b} DRUMMER QUITS TO OPEN ARTISAN CHEESE SHOP",
-	"{b} TOP THE CHARTS WITH '{s}'",
-	"{b} AND {b2} IN BACKSTAGE SANDWICH ROW",
-	"{b} REVEAL 'DIFFICULT' 14-MINUTE SINGLE",
-	"{b} SINGER BANNED FROM SEASIDE TOWN AFTER SEAGULL INCIDENT",
-	"{b} TO HEADLINE GLASTONBELLY, AGAIN",
-	"{b} ALBUM LEAKS: 'IT'S MOSTLY KAZOO'",
-	"{b} REUNION RUMOURS AS GUITARIST SPOTTED IN SAME TESCO",
-	"{b} BUY A CASTLE, IMMEDIATELY REGRET IT",
-	"{b} SUE {b2} OVER 'SUSPICIOUSLY SIMILAR' CHORD",
-	"{b} INTRODUCE £400 'VIP SOUNDCHECK EXPERIENCE'",
-	"{b} ANNOUNCE FAREWELL TOUR (THEIR FIFTH)",
+	"{b} ANNOUNCE {n}-NIGHT RUN AT WOMBLEY", "{b} DRUMMER QUITS TO OPEN ARTISAN CHEESE SHOP",
+	"{b} TOP THE CHARTS WITH '{s}'", "{b} AND {b2} IN BACKSTAGE SANDWICH ROW",
+	"{b} REVEAL 'DIFFICULT' 14-MINUTE SINGLE", "{b} SINGER BANNED FROM SEASIDE TOWN AFTER SEAGULL INCIDENT",
+	"{b} TO HEADLINE GLASTONBELLY, AGAIN", "{b} ALBUM LEAKS: 'IT'S MOSTLY KAZOO'",
+	"{b} REUNION RUMOURS AS GUITARIST SPOTTED IN SAME TESCO", "{b} BUY A CASTLE, IMMEDIATELY REGRET IT",
+	"{b} SUE {b2} OVER 'SUSPICIOUSLY SIMILAR' CHORD", "{b} INTRODUCE £400 'VIP SOUNDCHECK EXPERIENCE'",
+	"{b} ANNOUNCE FAREWELL TOUR (THEIR FIFTH)", "{b} CANCEL TOUR AFTER BASSIST LOSES PASSPORT IN A TRIFLE",
+	"{b} SINGER SPOTTED BUYING SENSIBLE CARDIGAN, FANS IN UPROAR", "{b} RELEASE '{s}' AS LIMITED-EDITION TEA TOWEL",
+	"{b} AND {b2} SETTLE FEUD WITH TENSE GAME OF CROQUET", "{b} TOUR RIDER DEMANDS {n} BOURBON BISCUITS, NONE BROKEN",
+	"{b} GUITARIST INSURES EYEBROWS FOR £{n} MILLION", "{b} ANNOUNCE CONCEPT ALBUM ABOUT MOTORWAY ROADWORKS",
+	"{b} PLAY SECRET GIG IN VILLAGE HALL, VICAR 'QUITE TAKEN'", "{b} SACK MANAGER BY STRONGLY WORDED POSTCARD",
+	"{b}'S '{s}' VOTED NATION'S FAVOURITE SONG TO HOOVER TO", "{b} DRUMMER CLAIMS HE 'BASICALLY INVENTED THE COWBELL'",
+	"{b} SPLIT OVER WHO GETS THE GOOD KETTLE", "{b} ACCUSED OF HUMMING '{s}' THROUGHOUT {b2}'S SET",
+	"{b} WIN {n} AWARDS, LEAVE THEM ALL ON THE TRAIN HOME", "{b} STAGE DIVE GOES WRONG: SINGER LANDS IN MERCH STALL",
+	"{b} HOLOGRAM TOUR DELAYED AS HOLOGRAM 'NEEDS A LIE-DOWN'",
+	"{b} UNVEIL WAXWORKS OF THEMSELVES; WAXWORKS GET BETTER REVIEWS",
 ]
 const MEGA_SUBS := [
 	"Fans queued for {n} hours in the rain. 'Worth it,' says soggy teen.",
@@ -99,6 +102,20 @@ const MEGA_SUBS := [
 	"A spokesperson said the band 'had no comment, but loved the question'.",
 	"The bassist was unavailable for comment, having been in a sensory deprivation tank since March.",
 	"Tickets sold out in {n} seconds. Touts are already asking for a kidney.",
+	"Insiders say the mood in the camp is 'fine, honestly, stop asking'.",
+	"The band's {n}th statement this week clarified nothing.",
+	"Neighbours report 'a lot of shouting, then a guitar solo'.",
+	"Somebody's mum confirmed the news on the village noticeboard.",
+	"Experts predict this will be forgotten in roughly {n} days.",
+	"A source close to the band described it as 'very much a thing that happened'.",
+	"Industry analysts have called it 'bold', which is industry for 'baffling'.",
+	"Fans have already started {n} online petitions, two of them about something else.",
+	"The record label issued a statement, then a second statement apologising for the first.",
+	"Their tour manager has reportedly gone for a long walk.", "Bookies have slashed the odds to {n} to 1.",
+	"Merchandise sales are up, mostly for the novelty mug.",
+	"One roadie called it 'the most interesting Tuesday in years'.",
+	"Rival bands were quick to send flowers, and a slightly smug card.",
+	"It is the biggest story in British rock since last week's biggest story.",
 ]
 
 ## Stories about YOUR band. {band}, {member}, {venue}, {single}.
@@ -164,16 +181,34 @@ const GIG_REVIEWS := {
 		"REVIEW: {band} at {venue}. '{quote}' Get a ticket next time, if you can.",
 		"{city} is still ringing after {band} played {venue}. '{quote}'",
 		"Five-star scenes at {venue}: {band} delivered. '{quote}'",
+		"{band} owned {venue} last night. {city} may never recover. '{quote}'",
+		"STAR TURN: {band} at {venue}, {city}. Our critic: '{quote}'",
+		"{band} left {venue} in a heap of happy rubble. '{quote}'",
+		"Hold the front page: {band} were magnificent in {city}. '{quote}'",
+		"{band} at {venue}: the gig {city} will be bragging about for years. '{quote}'",
+		"Sweat dripping off the ceiling at {venue} as {band} smashed it. Our critic: '{quote}'",
+		"REVIEW: {band}, {venue}, {city}. In a word: blimey. '{quote}'",
+		"{band} turned a wet night in {city} into something special. '{quote}'",
 	],
 	"good": [
-		"{band} put on a solid show at {venue}, {city}. '{quote}'",
-		"REVIEW: {band} at {venue}. '{quote}' Worth a look.",
+		"{band} put on a solid show at {venue}, {city}. '{quote}'", "REVIEW: {band} at {venue}. '{quote}' Worth a look.",
 		"{band} warmed up a {city} crowd at {venue}. Our critic says: '{quote}'",
+		"{band} did the business at {venue}. Our critic: '{quote}'", "A respectable night for {band} in {city}. '{quote}'",
+		"REVIEW: {band} at {venue}, {city}. '{quote}' Keep an eye on them.",
+		"{band} gave the {venue} PA a decent workout. '{quote}'",
+		"No complaints from {city} as {band} played {venue}. Our critic: '{quote}'",
+		"{band} at {venue}: not life-changing, but a cracking Tuesday. '{quote}'",
 	],
 	"bad": [
 		"REVIEW: {band} at {venue}. '{quote}' Ouch.",
 		"{band} struggled at {venue} in {city}. Our critic was blunt: '{quote}'",
 		"Not their night: {band} misfired at {venue}. '{quote}'",
+		"{band} at {venue}: the less said the better. But here goes: '{quote}'",
+		"{city} was not kind to {band} last night. Our critic: '{quote}'",
+		"REVIEW: {band} at {venue}. '{quote}' The bar staff did well, though.",
+		"A long night at {venue} as {band} tried their best. '{quote}'",
+		"{band} played {venue} in {city}. Our critic has asked for a week off: '{quote}'",
+		"Back to the rehearsal room for {band} after {venue}. '{quote}'",
 	],
 }
 ## Chart stories. {band}, {title}, {pos}.
@@ -193,11 +228,44 @@ const CHART_DOWN := [
 ]
 
 const CRITIC_QUOTES := [
-	["An avoidable disaster. I've had more fun at the dentist.", "Out of tune, out of time, out of ideas.", "I left early. So did the drummer."],
-	["Rough around the edges, and in the middle.", "There's a band in there somewhere. Somewhere.", "Loud. That's the nicest thing I can say."],
-	["Solid enough. The singer has something.", "A decent night out, if nothing more.", "Promising, if they can stop tuning between every song."],
-	["Tight, punchy and properly entertaining.", "The best thing I've seen at this venue all year.", "A band starting to believe its own hype, and rightly so."],
-	["Transcendent. I wept into my notepad.", "Instant legends. Tell your grandchildren you were there.", "Five stars and I'd give six if the editor let me."],
+	[
+		"An avoidable disaster. I've had more fun at the dentist.", "Out of tune, out of time, out of ideas.",
+		"I left early. So did the drummer.", "I have heard better music from a reversing lorry.",
+		"The encore felt like a threat.", "Even the fire exit looked tempting, and it was locked.",
+		"A gig in the same way a puddle is a lake.", "I've filed this review under 'Lessons Learned'.",
+		"The only thing in time all night was the fire alarm.",
+	],
+	[
+		"Rough around the edges, and in the middle.", "There's a band in there somewhere. Somewhere.",
+		"Loud. That's the nicest thing I can say.", "Plenty of enthusiasm. Very little else.",
+		"Half of it worked. Sadly, not the half with the tuning.", "They need a rehearsal, a setlist and possibly a hug.",
+		"The second song was nearly good.", "Bold choices. Wrong ones, but bold.",
+		"I admired the effort, if not the result.",
+	],
+	[
+		"Solid enough. The singer has something.", "A decent night out, if nothing more.",
+		"Promising, if they can stop tuning between every song.", "Perfectly pleasant. My foot tapped at least twice.",
+		"Nothing wrong with it. Nothing outrageous, either.", "A few good songs in search of a great one.",
+		"Worth the bus fare, if not the taxi.", "The last chorus is still in my head, annoyingly.",
+		"Getting there. Ask me again in six months.",
+	],
+	[
+		"Tight, punchy and properly entertaining.", "The best thing I've seen at this venue all year.",
+		"A band starting to believe its own hype, and rightly so.",
+		"A proper rock and roll night. My ears are still applauding.",
+		"They played like there was nowhere else they'd rather be.",
+		"Swaggering, sweaty and surprisingly tender in places.",
+		"The new songs are better than the old ones, which is rare.", "Not a dud in the set. I checked.",
+		"One step away from something really special.",
+	],
+	[
+		"Transcendent. I wept into my notepad.", "Instant legends. Tell your grandchildren you were there.",
+		"Five stars and I'd give six if the editor let me.", "I came to review a gig and left a changed person.",
+		"The kind of night that makes you forgive rock music for everything.",
+		"Utterly glorious. I've cancelled my other reviews this week.",
+		"If there's a better band in Britain, they're hiding it well.",
+		"I forgot to take notes. I briefly forgot my own name.", "Pure, ear-ringing joy from first note to last.",
+	],
 ]
 ## For great gigs in front of a handful of people. {n} = attendance.
 const SMALL_CROWD_QUOTES := [
@@ -207,11 +275,28 @@ const SMALL_CROWD_QUOTES := [
 	"'Best night of my life,' says one of the {n}. The other {n2} agree.",
 ]
 const CROWD_QUOTES := [
-	["'Can I have my money back?'", "'The raffle was better.'", "Someone threw a sausage roll."],
-	["'They were... loud?'", "Polite clapping. Some of it ironic.", "'My nan liked it.'"],
-	["'Not bad at all, actually!'", "Heads nodding all round.", "'Get them back next month.'"],
-	["The place was bouncing!", "Chants of 'ONE MORE SONG!'", "'Best gig I've been to this year!'"],
-	["Absolute scenes. People crowd-surfing off the bar.", "The roof came off. Nearly literally.", "'I'm getting their name tattooed.'"],
+	[
+		"'Can I have my money back?'", "'The raffle was better.'", "Someone threw a sausage roll.", "'Is it over yet?'",
+		"The queue for the exit was longer than the one for the bar.", "'I only came in to get out of the rain.'",
+	],
+	[
+		"'They were... loud?'", "Polite clapping. Some of it ironic.", "'My nan liked it.'",
+		"A man at the back did a small, uncertain wiggle.", "'Better than staying in. Just.'",
+		"Mild applause, mainly from the band's mates.",
+	],
+	[
+		"'Not bad at all, actually!'", "Heads nodding all round.", "'Get them back next month.'",
+		"'Yeah, I'd see them again.'", "A respectable amount of jumping.", "'The drummer's a bit good, isn't he?'",
+	],
+	[
+		"The place was bouncing!", "Chants of 'ONE MORE SONG!'", "'Best gig I've been to this year!'",
+		"Strangers hugging in the mosh pit.", "'They've got something, them.'", "Every word sung back at the stage.",
+	],
+	[
+		"Absolute scenes. People crowd-surfing off the bar.", "The roof came off. Nearly literally.",
+		"'I'm getting their name tattooed.'", "'I'll be telling my kids about this.'", "Even the bouncers were dancing.",
+		"People were still singing at the bus stop at 2am.",
+	],
 ]
 
 ## Random weekly events. Each has choices with effects (see Events._resolve_random).
@@ -367,7 +452,18 @@ const FAME_EVENTS := [
 ]
 const CAUSE_COUNTRIES := ["Tuvalu", "Malawi", "Moldova", "Kiribati", "Burkina Faso", "Laos", "Vanuatu", "Eswatini", "Bhutan", "Suriname"]
 
-const DOC_TITLES := ["Loud & Unwashed: The Story of {band}", "{band}: Behind The Fuzz", "Some Kind of Badger: {band}",
-	"Don't Look Back In {city}: {band}", "{band}: The Van Years"]
-const FILM_TITLES := ["{band}: Live At {venue}", "Stop Making Sense-ish: {band}", "{band}: Ear-Splitting Live",
-	"The Last Waltz-ish: {band}", "{band}: One Night Only"]
+const DOC_TITLES := [
+	"Loud & Unwashed: The Story of {band}", "{band}: Behind The Fuzz", "Some Kind of Badger: {band}",
+	"Don't Look Back In {city}: {band}", "{band}: The Van Years", "{band}: Too Loud For The Neighbours",
+	"Tea, Tantrums & Tour Buses: The {band} Story", "{band}: Four Chords And The Truth",
+	"Nobody Asked For This: A Film About {band}", "{band}: Still Unpacking The Van",
+	"Turn It Down, Love: The {band} Years", "{band}: Rain, Riffs & Motorway Services",
+	"Twenty Feet From The Kettle: {band}", "{band}: Soundcheck Forever", "The Long Way Round The Ring Road: {band}",
+]
+const FILM_TITLES := [
+	"{band}: Live At {venue}", "Stop Making Sense-ish: {band}", "{band}: Ear-Splitting Live",
+	"The Last Waltz-ish: {band}", "{band}: One Night Only", "{band}: Live And Slightly Damp At {venue}",
+	"{band}: Rattling The Rafters", "Purple Drizzle: {band} Live", "{band}: A Night At {venue}",
+	"{band}: Volume Eleven", "Shine A Torch: {band} Live", "{band}: The Encore That Wouldn't End",
+	"{band} Unplugged (Mostly)", "{band}: Sweat, Feedback & Glory At {venue}", "Rattle And Hum-ish: {band}",
+]
